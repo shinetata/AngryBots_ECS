@@ -23,8 +23,13 @@ partial class RemoveDeadSystem : PGDSystem
     {
         {
             CommandQueue commandBuffer = PGDGameContext.GetCommandQueue();
-            PGDGameContext.GetWorld().Query<Health, EnemyTag>().ForEachEntity((ref Health health, ref EnemyTag _, IEntity entity) =>
+            PGDGameContext.GetWorld().Query<Health, EnemyTag, GoLink>().ForEachEntity((ref Health health, ref EnemyTag _, 
+                ref GoLink link, IEntity entity) =>
             {
+                if (link.isPrefab)
+                {
+                    return;
+                }
                 // Access the value of health (local name for the Health component). Note how this
                 // syntax uses "ValueRO" instead of just "Value". This is needed inside a foreach to 
                 // specify the type of access needed for the component data

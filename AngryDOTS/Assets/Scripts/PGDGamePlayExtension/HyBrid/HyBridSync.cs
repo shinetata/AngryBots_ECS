@@ -7,13 +7,10 @@ public class HybridTransformSync : PGDSystem<GoLink>
     {
         GetQuery().ForEachEntity((ref GoLink goLink, IEntity entity) =>
         {
-            if (entity.TryGetComponent<PGDPosition>(out var pos))
+            if (entity.TryGetComponent<PGDLocalTransform>(out var trans))
             {
-                goLink.transform.position = new Vector3(pos.x, pos.y, pos.z);
-            }
-            if (entity.TryGetComponent<PGDRotation>(out var rot))
-            {
-                goLink.transform.rotation = new Quaternion(rot.x, rot.y, rot.z, rot.w);
+                goLink.transform.position = trans.Position;
+                goLink.transform.rotation = trans.Rotation;
             }
         });
     }
