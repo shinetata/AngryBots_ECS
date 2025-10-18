@@ -34,7 +34,7 @@ public partial class TimedDestroySystem : PGDSystem
                 }
             });
             // After the foreach, playback the buffer, destroying the entities
-            CommandQueue.Apply();
+            commandBuffer.Apply();
         }
     // Once the "using" block closes, the CommandBuffer will be cleaned up
     }
