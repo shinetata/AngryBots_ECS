@@ -5,45 +5,63 @@
 * one Directory so that it can be found as a singleton entity
 */
 
+using System;
 using Unity.Entities;
 using UnityEngine;
+using PGD;
 
+[DefaultExecutionOrder(-3200)]
 // This script will go on the Directory GameOject in the sub-scene
 public class DirectoryAuthoring : MonoBehaviour
 {
     public GameObject bulletPrefab; // The GameObject prefab of the projectiles
-    public GameObject enemyPrefab;  // The GameObject prefab of the enemies
-
+    public GameObject enemyPrefab; // The GameObject prefab of the enemies
     // This class, Baker, is embedded in the DirectoryAuthoring class directly (though
     // it doesn't have to be, this is just nice and clean). It manages the baking
     // process that converts this GameObject to an Entity
-    class Baker : Baker<DirectoryAuthoring>
+    private void Awake()
+    {
+        PGDHyBridLoader.InitializeAllHybrids();
+        var defaultWorld = PGDGameContext.GetWorld();
+        var defaultJobMananger = PGDGameContext.GetJobManager();
+        defaultWorld.RegisterSystem(new TimedDestroySystem());
+        defaultWorld.RegisterSystem(new RemoveDeadSystem());
+        var turnSys = new TurnTowardsPlayerSystem();
+        defaultWorld.RegisterSystem(turnSys);
+        defaultJobMananger.Register(turnSys);
+        var collSys = new CollisionSystem();
+        defaultWorld.RegisterSystem(collSys);
+        defaultJobMananger.Register(collSys);
+        var moveSys = new MoveForwardSystem();
+        defaultWorld.RegisterSystem(moveSys);
+        defaultJobMananger.Register(moveSys);
+    }
+
+    class Baker : PGDHyBrid<DirectoryAuthoring>
     {
         // The one method of this class. This is where the baking work is done
-        public override void Bake(DirectoryAuthoring authoring)
+        public override void Handle(DirectoryAuthoring authoring)
         {
             // First we create an empty entity. The TransformUsageFlags.None
             // means that this is an entity that doesn't have / need a transform
-            var entity = GetEntity(TransformUsageFlags.None);
-
+            IEntity entity = GetHyBridEntity();
+            var enemyEntity = GetHyBridEntity(authoring.enemyPrefab);
+            
+            var bulletEntity = GetHyBridEntity(authoring.bulletPrefab);
             // We will add a new Directory data component (defined below) to this entity
-            AddComponent(entity, new Directory
-            {
-                // Here we use GetEntity to "convert" (bake) the bullet and enemy prefabs and
-                // store them as data on this entity. Note that "authoring" is how we access
-                // items in this MonoBehaviour. Addionally, TransformUsageFlags.Dynamic means
-                // that these entities will be able to both move around, and be rendered
-                bulletPrefab = GetEntity(authoring.bulletPrefab, TransformUsageFlags.Dynamic),
-                enemyPrefab = GetEntity(authoring.enemyPrefab, TransformUsageFlags.Dynamic)
-            }) ;
+            AddComponent(entity, new Directory { // Here we use GetEntity to "convert" (bake) the bullet and enemy prefabs and
+            // store them as data on this entity. Note that "authoring" is how we access
+            // items in this MonoBehaviour. Addionally, TransformUsageFlags.Dynamic means
+            // that these entities will be able to both move around, and be rendered
+            bulletPrefab = bulletEntity, enemyPrefab = enemyEntity });
         }
     }
 }
 
 // This component contains a two Entity variables which will contain the entity IDs
 // for the bullet and enemy entities
-public struct Directory : IComponentData
+public struct Directory : IComponent
 {
-    public Entity bulletPrefab;
-    public Entity enemyPrefab;
+    public IEntity bulletPrefab;
+    public IEntity enemyPrefab;
 }

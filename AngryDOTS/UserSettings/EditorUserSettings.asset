@@ -1,5 +1,5 @@
 %YAML 1.1
-%TAG !u! tag:unity3d.com,2011:
+%TAG !u! tag:yousandi.cn,2023:
 --- !u!162 &1
 EditorUserSettings:
   m_ObjectHideFlags: 0
@@ -24,6 +24,9 @@ EditorUserSettings:
       value: 0703575f560d5b0a5a085b701327594413161a297b7d23682e2b4f37e1e23568
       flags: 0
     RecentlyUsedSceneGuid-1:
+      value: 57090d565d01505e0e575c2645270d4410161a2e2a7a7f332e284831e4b5373a
+      flags: 0
+    RecentlyUsedSceneGuid-2:
       value: 5407050557535b580c590d7516200c4441164d787571256579281f36b5b03739
       flags: 0
     RecentlyUsedScenePath-0:
@@ -52,4 +55,5 @@ EditorUserSettings:
   m_VCHierarchyOverlayIcons: 1
   m_VCOtherOverlayIcons: 1
   m_VCAllowAsyncUpdate: 1
+  m_VCScanLocalPackagesOnConnect: 1
   m_ArtifactGarbageCollection: 1
