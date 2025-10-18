@@ -30,7 +30,10 @@ public abstract class PGDHyBrid<TAuthoring> where TAuthoring : Component
     protected IEntity GetHyBridEntity(GameObject prefab)
     {
         if (!prefab) throw new ArgumentNullException(nameof(prefab));
-        PGDObjectPool.Instance.InitializePool(prefab);
+        if (!PGDObjectPool.Instance.IsInitialized(prefab))
+        {
+            PGDObjectPool.Instance.InitializePool(prefab);
+        }
         PGDObjectPool.Instance.TryGetTemplateEntity(prefab, out var entity);
         return entity;
     }

@@ -113,7 +113,7 @@ partial class CollisionSystem : PGDSystem, IJobifiedSystem
         // use (in this case, all the enemies) and the state dependency so Unity can
         // help managing timing for us. We then save the return value to state.Dependency
         // to properly manage further dependency tracking (we will use this again below)
-        dependency.jobs = jobEvB.ScheduleParallel(enemyQuery.EntityCount, dependency.jobs);
+        dependency.jobs = jobEvB.ScheduleParallel(playerQuery.EntityCount, dependency.jobs);
         // Create a new CollisionJob for Player vs Enemies
         var jobPvE = new CollisionJob()
         {
@@ -128,7 +128,7 @@ partial class CollisionSystem : PGDSystem, IJobifiedSystem
         // Schedule this as a multi-threaded job, this time making it run on the player (or
         // players if we had more than one). Remember, state.Dependency is now referring to
         // the job we scheduled right before this one
-        dependency.jobs = jobPvE.ScheduleParallel(playerQuery.EntityCount, dependency.jobs);
+        dependency.jobs = jobPvE.ScheduleParallel(enemyQuery.EntityCount, dependency.jobs);
     }
 }
 

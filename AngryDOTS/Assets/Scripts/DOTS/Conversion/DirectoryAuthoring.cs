@@ -21,7 +21,6 @@ public class DirectoryAuthoring : MonoBehaviour
     // process that converts this GameObject to an Entity
     private void Awake()
     {
-        PGDHyBridLoader.InitializeAllHybrids();
         var defaultWorld = PGDGameContext.GetWorld();
         var defaultJobMananger = PGDGameContext.GetJobManager();
         defaultWorld.RegisterSystem(new TimedDestroySystem());
@@ -35,6 +34,8 @@ public class DirectoryAuthoring : MonoBehaviour
         var moveSys = new MoveForwardSystem();
         defaultWorld.RegisterSystem(moveSys);
         defaultJobMananger.Register(moveSys);
+        
+        PGDHyBridLoader.InitializeAllHybrids();
     }
 
     class Baker : PGDHyBrid<DirectoryAuthoring>

@@ -40,6 +40,6 @@ public class ProjectileBehaviour : MonoBehaviour
 
 	void RemoveProjectile()
 	{
-		Destroy(gameObject);
+		// Destroy(gameObject);
 	}
 }

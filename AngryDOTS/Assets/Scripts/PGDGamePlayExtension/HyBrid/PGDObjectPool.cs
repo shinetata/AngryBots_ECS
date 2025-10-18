@@ -220,7 +220,12 @@ namespace PGD
             if (id < state.Entities.Count)
             {
                 var e = state.Entities[id];
-                if (e.Id != 0) e.Active = true;
+                if (e.Id != 0 && TryEnsureTemplateEntity(prefab, out var templateEntity))
+                {
+                    e.Active = true;
+                    templateEntity.CopyEntityTo(e);
+                    e.Set(new GoLink(obj, id, prefab.name, false));
+                } 
             }
 
             return id;
@@ -234,11 +239,7 @@ namespace PGD
                 Debug.LogError($"ReturnObject failed: go is null. GoId={id}, GoName={go.name}");
                 return;
             }
-            if (pools.ContainsKey(go))
-            {
-                ReturnObjectByPrefab(go, id, queue);
-            }
-            else
+            if (!pools.ContainsKey(go))
             {
                 ReturnObjectByInstance(go, id, queue);
             }
@@ -481,8 +482,11 @@ namespace PGD
             }
             var state = pools[prefab];
             var e = state.Entities[id];
-            if (e.Id != 0) 
+            if (e.Id != 0 && TryEnsureTemplateEntity(prefab, out var templateEntity)) 
             {
+                var obj = state.Objects[id];
+                templateEntity.CopyEntityTo(e);
+                e.Set(new GoLink(obj, id, prefab.name, false));
                 return e;
             } 
             ReturnObject(prefab, id);

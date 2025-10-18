@@ -101,11 +101,12 @@ public static class PGDGameContext
     {
         if (entity.TryGetComponent(out GoLink goLink))
         {
-            PGDObjectPool.Instance.ReturnObject(goLink.gameObject, goLink.agentId);
-            return;
+            PGDObjectPool.Instance.ReturnObject(goLink.gameObject, goLink.agentId, commandQueue);
         }
-        commandQueue.DeleteEntity(entity.Id);
-        
+        else
+        {
+            commandQueue.DeleteEntity(entity.Id);
+        }
     }
     #endregion
 
