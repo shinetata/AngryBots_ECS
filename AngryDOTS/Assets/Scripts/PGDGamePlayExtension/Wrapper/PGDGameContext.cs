@@ -37,6 +37,7 @@ public static class PGDGameContext
     public static void UpdateSystem()
     {
         GetWorld().PgdSystemManager.Update(default);
+        GetJobManager().Update();
     }
 
     public static T GetExistingSystem<T>() where T : PgdSystemBase

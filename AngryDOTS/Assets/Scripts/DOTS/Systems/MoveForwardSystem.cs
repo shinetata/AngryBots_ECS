@@ -39,7 +39,8 @@ partial class MoveForwardSystem : PGDSystem, IJobifiedSystem
         foreach (var entity in query.Entities)
         {
             var localTransform = entity.GetComponent<PGDLocalTransform>();
-            localTransform.Position = transforms[index].Position;
+            // localTransform.Position = transforms[index].Position;
+            entity.Set(transforms[index]);
             index++;
         }
     }

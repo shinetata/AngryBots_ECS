@@ -7,6 +7,10 @@ public class HybridTransformSync : PGDSystem<GoLink>
     {
         GetQuery().ForEachEntity((ref GoLink goLink, IEntity entity) =>
         {
+            if (goLink.isPrefab)
+            {
+                return;
+            }
             if (entity.TryGetComponent<PGDLocalTransform>(out var trans))
             {
                 goLink.transform.position = trans.Position;
