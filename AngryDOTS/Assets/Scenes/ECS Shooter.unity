@@ -1383,7 +1383,7 @@ GameObject:
   serializedVersion: 7
   m_Component:
   - component: {fileID: 804078888266812236}
-  - component: {fileID: 4093361094999800039}
+  - component: {fileID: 1131509629014552799}
   m_Layer: 0
   m_HasEditorInfo: 1
   m_Name: Enemy Spawner
@@ -1392,7 +1392,7 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &4093361094999800039
+--- !u!114 &1131509629014552799
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
