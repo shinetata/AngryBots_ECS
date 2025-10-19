@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "com.pgd.core": {
-      "version": "file:/Users/yaowei/SQ/GitHub/PGDCS/package",
+      "version": "file:D:/GitHub/PGDCS/package",
       "depth": 0,
       "source": "local",
       "dependencies": {}
@@ -50,7 +50,7 @@
       "url": "https://packages.tuanjie.cn"
     },
     "com.unity.burst": {
-      "version": "1.8.19",
+      "version": "1.8.17",
       "depth": 1,
       "source": "registry",
       "dependencies": {
@@ -170,14 +170,11 @@
       "url": "https://packages.tuanjie.cn"
     },
     "com.unity.render-pipelines.core": {
-      "version": "14.1.0",
+      "version": "14.0.11",
       "depth": 1,
       "source": "builtin",
       "dependencies": {
-        "com.unity.burst": "1.8.14",
-        "com.unity.mathematics": "1.2.6",
         "com.unity.ugui": "1.0.0",
-        "com.unity.collections": "2.1.4",
         "com.unity.modules.physics": "1.0.0",
         "com.unity.modules.terrain": "1.0.0",
         "com.unity.modules.jsonserialize": "1.0.0"
@@ -190,8 +187,8 @@
       "dependencies": {
         "com.unity.mathematics": "1.2.1",
         "com.unity.burst": "1.8.9",
-        "com.unity.render-pipelines.core": "14.1.0",
-        "com.unity.shadergraph": "14.1.0",
+        "com.unity.render-pipelines.core": "14.0.11",
+        "com.unity.shadergraph": "14.0.11",
         "com.unity.render-pipelines.universal-config": "14.0.9"
       }
     },
@@ -204,7 +201,7 @@
       }
     },
     "com.unity.scriptablebuildpipeline": {
-      "version": "1.21.25",
+      "version": "1.21.24",
       "depth": 1,
       "source": "registry",
       "dependencies": {},
@@ -228,33 +225,33 @@
       "url": "https://packages.tuanjie.cn"
     },
     "com.unity.services.analytics": {
-      "version": "6.0.3",
+      "version": "5.0.0",
       "depth": 1,
       "source": "registry",
       "dependencies": {
         "com.unity.ugui": "1.0.0",
-        "com.unity.services.core": "1.12.4",
-        "com.unity.modules.jsonserialize": "1.0.0"
+        "com.unity.modules.jsonserialize": "1.0.0",
+        "com.unity.services.core": "1.10.1"
       },
       "url": "https://packages.tuanjie.cn"
     },
     "com.unity.services.core": {
-      "version": "1.14.0",
+      "version": "1.12.5",
       "depth": 2,
       "source": "registry",
       "dependencies": {
-        "com.unity.modules.androidjni": "1.0.0",
+        "com.unity.modules.unitywebrequest": "1.0.0",
         "com.unity.nuget.newtonsoft-json": "3.2.1",
-        "com.unity.modules.unitywebrequest": "1.0.0"
+        "com.unity.modules.androidjni": "1.0.0"
       },
       "url": "https://packages.tuanjie.cn"
     },
     "com.unity.shadergraph": {
-      "version": "14.1.0",
+      "version": "14.0.11",
       "depth": 1,
       "source": "builtin",
       "dependencies": {
-        "com.unity.render-pipelines.core": "14.1.0",
+        "com.unity.render-pipelines.core": "14.0.11",
         "com.unity.searcher": "4.9.2"
       }
     },
@@ -332,7 +329,10 @@
       "version": "1.0.0",
       "depth": 0,
       "source": "builtin",
-      "dependencies": {}
+      "dependencies": {
+        "com.unity.modules.audio": "1.0.0",
+        "com.unity.modules.animation": "1.0.0"
+      }
     },
     "com.unity.modules.audio": {
       "version": "1.0.0",
