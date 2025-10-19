@@ -36,7 +36,7 @@ public class PlayerShooting : MonoBehaviour
         // Create a query that will find the Directory entity. The Directory is created automatically
         // by the baking process of the Directory GameObject which you can find in the "Baker Sub Scene"
         // in the ECS Shooter scene
-        IQuery query = PGDGameContext.BuildQuery().WithAllComponents(IComponents.Get<Directory>());
+        IQuery query = PGDGameContext.GetWorld().Query().WithAllComponents(IComponents.Get<Directory>());
         // If this query finds one and only one Directory, then grab the bullet entity and store it
         if (query.HasSingleton<Directory>())
             bulletEntityPrefab = query.GetSingleton<Directory>().bulletPrefab;

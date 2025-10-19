@@ -78,10 +78,12 @@ namespace PGD
             {
                 var template = world.CreateEntity(new GoLink(prefab, -1, prefab.name, true));
                 // 让模板具备基础 Transform 组件
-                template.AddComponent(new PGDLocalTransform {
+                template.AddComponent(new PGDLocalTransform
+                {
                     Position = prefab.transform.position,
                     Rotation = prefab.transform.rotation
                 });
+                template.AddTag<PrefabTag>();
                 pools[prefab].TemplateEntity = template;
             }
         }
@@ -106,6 +108,12 @@ namespace PGD
             }
 
             templateEntity.AddComponent(new GoLink(prefab, -1, prefab.name, true));
+            templateEntity.AddComponent(new PGDLocalTransform
+            {
+                Position = prefab.transform.position,
+                Rotation = prefab.transform.rotation
+            });
+            templateEntity.AddTag<PrefabTag>();
             pools[prefab] = new PoolState(prefab);
             pools[prefab].TemplateEntity = templateEntity;
         }
@@ -347,6 +355,7 @@ namespace PGD
                     var id = currentCount + i;
                     var entity = templateEntity.CloneEntity();
                     entity.Set(new GoLink(obj, id, prefab.name, false));
+                    entity.RemoveTag<PrefabTag>();
                     entity.Active = false; // 预热创建的槽位实体默认非激活
                     while (state.Entities.Count <= id)
                     {
@@ -530,6 +539,7 @@ namespace PGD
                 var newId = state.Objects.Count - 1;
                 var entity = templateEntity.CloneEntity();
                 entity.Set(new GoLink(obj, newId, prefab.name, false));
+                entity.RemoveTag<PrefabTag>();
                 entity.Active = false;
                 EnsureEntityListSize(state, newId);
                 state.Entities[newId] = entity;
@@ -589,6 +599,7 @@ namespace PGD
                     if (e.Id != 0 && !e.IsDeleted())
                     {
                         e.Set(new GoLink(obj, id, prefab.name, false));
+                        e.RemoveTag<PrefabTag>();
                     }
                 }
             }
@@ -611,6 +622,7 @@ namespace PGD
                 EnsureEntityListSize(state, id);
                 var e = tmpl.CloneEntity();
                 e.Set(new GoLink(obj, id, prefab.name, false));
+                e.RemoveTag<PrefabTag>();
                 state.Entities[id] = e;
             }
         }
@@ -711,6 +723,7 @@ namespace PGD
 
             templateEntity.CopyEntityTo(entity);
             entity.Set(new GoLink(obj, id, prefab.name, false));
+            entity.RemoveTag<PrefabTag>();
             entity.Active = activate;
             return true;
         }

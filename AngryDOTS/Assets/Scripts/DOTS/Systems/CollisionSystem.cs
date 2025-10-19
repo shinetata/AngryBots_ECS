@@ -44,9 +44,9 @@ partial class CollisionSystem : PGDSystem, IJobifiedSystem
     {
         // If there are no enemies, this system doesn't need to run
         // Build and save the queries we will be using
-        enemyQuery = PGDGameContext.BuildQuery().WithAllComponents(IComponents.Get<Health, EnemyTag, PGDLocalTransform>());
-        bulletQuery = PGDGameContext.BuildQuery().WithAllComponents(IComponents.Get<TimeToLive, PGDLocalTransform>());
-        playerQuery = PGDGameContext.BuildQuery().WithAllComponents(IComponents.Get<Health, PlayerTag, PGDLocalTransform>());
+        enemyQuery = PGDGameContext.BuildNonPrefabQuery().WithAllComponents(IComponents.Get<Health, EnemyTag, PGDLocalTransform>());
+        bulletQuery = PGDGameContext.BuildNonPrefabQuery().WithAllComponents(IComponents.Get<TimeToLive, PGDLocalTransform>());
+        playerQuery = PGDGameContext.BuildNonPrefabQuery().WithAllComponents(IComponents.Get<Health, PlayerTag, PGDLocalTransform>());
         // Grab the radii values from the Settings script
         enemyCollisionRadius = Settings.EnemyCollisionRadius;
         playerCollisionRadius = Settings.PlayerCollisionRadius;
@@ -64,15 +64,17 @@ partial class CollisionSystem : PGDSystem, IJobifiedSystem
         int index = 0;
         foreach (var entity in playerQuery.Entities)
         {
-            var health = entity.GetComponent<Health>();
+            ref var health = ref entity.GetComponent<Health>();
             health.Value = playerHealth[index].Value;
+            entity.Set(health);
             index++;
         }
         index = 0;
         foreach (var entity in enemyQuery.Entities)
         {
-            var health = entity.GetComponent<Health>();
+            ref var health =  ref entity.GetComponent<Health>();
             health.Value = enemyHealth[index].Value;
+            entity.Set(health);
             index++;
         }
     }

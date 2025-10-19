@@ -46,7 +46,7 @@ public class EnemyBehaviour : MonoBehaviour
 
 		if(enemyHealth <= 0)
 		{
-			Destroy(gameObject);
+			// Destroy(gameObject);
 			BulletImpactPool.PlayBulletImpact(transform.position);
 		}
 	}

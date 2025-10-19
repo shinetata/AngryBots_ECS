@@ -8,3 +8,5 @@ public struct PGDLocalTransform : IComponent
     public float Scale; 
     public Quaternion Rotation;
 }
+
+public struct PrefabTag : ITag {}
