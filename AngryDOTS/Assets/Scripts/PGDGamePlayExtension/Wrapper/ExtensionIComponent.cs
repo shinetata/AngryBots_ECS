@@ -1,9 +1,10 @@
 using PGD;
 using Unity.Mathematics;
+using UnityEngine;
 
 public struct PGDLocalTransform : IComponent
 {
     public float3 Position;
     public float Scale; 
-    public quaternion Rotation;
+    public Quaternion Rotation;
 }

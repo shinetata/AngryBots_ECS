@@ -15,17 +15,16 @@ using Unity.Collections;
 using PGD.Jobs;
 
 [BurstCompile] // Enable Burst compilation
-partial class MoveForwardSystem : PGDSystem, IJobifiedSystem
+partial class MoveForwardSystem : PGDSystem<PGDLocalTransform, MoveSpeed>, IJobifiedSystem
 {
     private NativeArray<PGDLocalTransform> transforms;
     private NativeArray<MoveSpeed> speeds;
     public Dependency dependency;
-    public IQuery query;
+
     [BurstCompile]
     protected override void OnAddWorld(IECSWorld world)
     {
         // If there are no entities with MoveSpeed, this system doesn't need to run
-        query = GetQuery().WithAllComponents(IComponents.Get<PGDLocalTransform, MoveSpeed>());
     }
 
     public void SetJobHandle(ref Dependency deps)
@@ -36,13 +35,15 @@ partial class MoveForwardSystem : PGDSystem, IJobifiedSystem
     public void SyncDataBack()
     {
         int index = 0;
-        foreach (var entity in query.Entities)
+        GetQuery().ForEachEntity((
+            ref PGDLocalTransform transform,
+            ref MoveSpeed speed,
+            IEntity entity
+            ) =>
         {
-            var localTransform = entity.GetComponent<PGDLocalTransform>();
-            // localTransform.Position = transforms[index].Position;
-            entity.Set(transforms[index]);
+            transform.Position = transforms[index].Position;
             index++;
-        }
+        });
     }
 
     public void Dispose()
@@ -55,9 +56,9 @@ partial class MoveForwardSystem : PGDSystem, IJobifiedSystem
     protected override void OnUpdate()
     {
         transforms = new NativeArray<PGDLocalTransform>(
-                query.Entities.Select(e => e.GetComponent<PGDLocalTransform>()).ToArray(), Allocator.TempJob);
+                GetQuery().Entities.Select(e => e.GetComponent<PGDLocalTransform>()).ToArray(), Allocator.TempJob);
         speeds = new NativeArray<MoveSpeed>(
-            query.Entities.Select(e => e.GetComponent<MoveSpeed>()).ToArray(), Allocator.TempJob);
+            GetQuery().Entities.Select(e => e.GetComponent<MoveSpeed>()).ToArray(), Allocator.TempJob);
         
         // Create a MoveForwardJob and tell it the amount of time that has passed
         // since the last time this system updated
@@ -69,7 +70,7 @@ partial class MoveForwardSystem : PGDSystem, IJobifiedSystem
         };
         // Schedule this job as multi-threaded. Since we don't pass in a query, the
         // job itself will contain the query
-        dependency.jobs = MoveForwardJob.ScheduleParallel(query.EntityCount, dependency.jobs);
+        dependency.jobs = MoveForwardJob.ScheduleParallel(GetQuery().EntityCount, dependency.jobs);
     }
 }
 

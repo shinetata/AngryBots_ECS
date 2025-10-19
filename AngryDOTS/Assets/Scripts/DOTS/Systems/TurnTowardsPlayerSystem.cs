@@ -14,17 +14,15 @@ using Unity.Collections;
 using System.Linq;
 
 [BurstCompile] // Enable Burst compilation
-partial class TurnTowardsPlayerSystem : PGDSystem, IJobifiedSystem
+partial class TurnTowardsPlayerSystem : PGDSystem<PGDLocalTransform, EnemyTag>, IJobifiedSystem
 {
     public Dependency dependency;
     private NativeArray<PGDLocalTransform> transforms;
-    public IQuery query;
     
     [BurstCompile]
     protected override void OnAddWorld(IECSWorld world)
     {
         // Do not run this system if there are no enemy entities
-        query = GetQuery().WithAllComponents(IComponents.Get<PGDLocalTransform>());
     }
 
     public void SetJobHandle(ref Dependency deps)
@@ -35,13 +33,15 @@ partial class TurnTowardsPlayerSystem : PGDSystem, IJobifiedSystem
     public void SyncDataBack()
     {
         int index = 0;
-        foreach (var entity in query.Entities)
+        GetQuery().ForEachEntity((
+            ref PGDLocalTransform transform,
+            ref EnemyTag _,
+            IEntity entity
+            ) =>
         {
-            var localTransform = entity.GetComponent<PGDLocalTransform>();
-            // localTransform.Position = transforms[index].Position;
-            entity.Set(transforms[index]);
+            transform.Rotation = transforms[index].Rotation;
             index++;
-        }
+        });
     }
 
     public void Dispose()
@@ -57,7 +57,7 @@ partial class TurnTowardsPlayerSystem : PGDSystem, IJobifiedSystem
         if (Settings.IsPlayerDead())
             return;
         transforms = new NativeArray<PGDLocalTransform>(
-            query.Entities.Select(e => e.GetComponent<PGDLocalTransform>()).ToArray(), Allocator.TempJob);
+            GetQuery().Entities.Select(e => e.GetComponent<PGDLocalTransform>()).ToArray(), Allocator.TempJob);
         // Create a TurnTowardsTargetJob and pass it the player's position. 
         var TurnTowardsPlayerJob = new TurnTowardTargetJob
         {
@@ -66,7 +66,7 @@ partial class TurnTowardsPlayerSystem : PGDSystem, IJobifiedSystem
         };
         // Schedule this job as multi-threaded. Since we don't pass in a query, the
         // job itself will contain the query
-        dependency.jobs = TurnTowardsPlayerJob.ScheduleParallel(query.EntityCount, dependency.jobs);
+        dependency.jobs = TurnTowardsPlayerJob.ScheduleParallel(GetQuery().EntityCount, dependency.jobs);
     }
 }
 
