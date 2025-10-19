@@ -215,17 +215,11 @@ namespace PGD
             // 激活并设置位置
             ActivateObject(obj, position, rotation, parent);
 
-            // 标记为活跃
+            // 标记为活跃并同步槽位实体
             state.ActiveIds.Add(id);
-            if (id < state.Entities.Count)
+            if (!SyncSlotEntity(state, prefab, id, obj, true))
             {
-                var e = state.Entities[id];
-                if (e.Id != 0 && TryEnsureTemplateEntity(prefab, out var templateEntity))
-                {
-                    e.Active = true;
-                    templateEntity.CopyEntityTo(e);
-                    e.Set(new GoLink(obj, id, prefab.name, false));
-                } 
+                Debug.LogError($"SpawnObject failed: entity sync error. Prefab={prefab.name}, Id={id}");
             }
 
             return id;
@@ -236,13 +230,16 @@ namespace PGD
         {
             if (go == null) 
             {
-                Debug.LogError($"ReturnObject failed: go is null. GoId={id}, GoName={go.name}");
+                Debug.LogError($"ReturnObject failed: go is null. GoId={id}");
                 return;
             }
-            if (!pools.ContainsKey(go))
+            if (pools.TryGetValue(go, out var state))
             {
-                ReturnObjectByInstance(go, id, queue);
+                ReturnObjectByPrefab(go, id, queue);
+                return;
             }
+
+            ReturnObjectByInstance(go, id, queue);
         }
 
         // 通过prefab和槽位id获取派生对象
@@ -481,14 +478,12 @@ namespace PGD
                 return default;
             }
             var state = pools[prefab];
-            var e = state.Entities[id];
-            if (e.Id != 0 && TryEnsureTemplateEntity(prefab, out var templateEntity)) 
+            var entity = state.Entities[id];
+            if (entity.Id != 0)
             {
-                var obj = state.Objects[id];
-                templateEntity.CopyEntityTo(e);
-                e.Set(new GoLink(obj, id, prefab.name, false));
-                return e;
-            } 
+                return entity;
+            }
+
             ReturnObject(prefab, id);
             Debug.LogError($"SpawnEntity failed: EntityId == 0. Prefab={prefab.name}");
             return default;
@@ -673,6 +668,30 @@ namespace PGD
                 return;
             }
             ReturnObjectByPrefab(prefab, goId, queue);
+        }
+
+        private bool SyncSlotEntity(PoolState state, GameObject prefab, int id, GameObject obj, bool activate)
+        {
+            if (id < 0 || id >= state.Entities.Count)
+            {
+                return false;
+            }
+
+            var entity = state.Entities[id];
+            if (entity.Id == 0)
+            {
+                return false;
+            }
+
+            if (!TryEnsureTemplateEntity(prefab, out var templateEntity))
+            {
+                return false;
+            }
+
+            templateEntity.CopyEntityTo(entity);
+            entity.Set(new GoLink(obj, id, prefab.name, false));
+            entity.Active = activate;
+            return true;
         }
     }
 }
