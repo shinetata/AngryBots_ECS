@@ -31,6 +31,7 @@ namespace PGD
 
     public class PGDObjectPool
     {
+        #region Singleton
         private static PGDObjectPool instance;
         public static PGDObjectPool Instance
         {
@@ -43,13 +44,17 @@ namespace PGD
                 return instance;
             }
         }
+        #endregion
 
+        #region Storage
 		private readonly Dictionary<GameObject, PoolState> pools = new Dictionary<GameObject, PoolState>();
 		// 仅维护实例 -> prefab 的全局映射，用于 O(1) 反查 prefab
 		private readonly Dictionary<GameObject, GameObject> instanceToPrefab = new Dictionary<GameObject, GameObject>();
+        #endregion
 
         private PGDObjectPool() { }
 
+        #region Pool Setup
         // 使用GameObject初始化池
         public void InitializePool(GameObject prefab)
         {
@@ -73,7 +78,10 @@ namespace PGD
             {
                 var template = world.CreateEntity(new GoLink(prefab, -1, prefab.name, true));
                 // 让模板具备基础 Transform 组件
-                template.AddComponent(new PGDLocalTransform());
+                template.AddComponent(new PGDLocalTransform {
+                    Position = prefab.transform.position,
+                    Rotation = prefab.transform.rotation
+                });
                 pools[prefab].TemplateEntity = template;
             }
         }
@@ -101,7 +109,9 @@ namespace PGD
             pools[prefab] = new PoolState(prefab);
             pools[prefab].TemplateEntity = templateEntity;
         }
+        #endregion
 
+        #region InstantiateEntity
         // 判断go是否已经初始化
         public bool IsInitialized(GameObject prefab)
         {
@@ -185,7 +195,9 @@ namespace PGD
 
             return entities.Length;
         }
+        #endregion
 
+        #region Spawn & Retrieve
         // 生成对象（返回槽位 id）
         public int SpawnObject(GameObject prefab, Vector3 position, Quaternion rotation, Transform parent = null)
         {
@@ -257,7 +269,9 @@ namespace PGD
                 return false;
             return pools[prefab].ActiveIds.Contains(id);
         }
+        #endregion
 
+        #region Maintenance
         // 清空池，可选择是否删除模板实体，默认不删除
         public void ClearPool(GameObject prefab, bool deleteTemplate = false)
         {
@@ -413,7 +427,9 @@ namespace PGD
         {
             return IsInitialized(prefab) && pools[prefab].IsEmpty;
         }
+        #endregion
 
+        #region Template Accessors
         // 获取该 prefab 的模板实体
         public bool TryGetTemplateEntity(GameObject prefab, out IEntity entity)
         {
@@ -437,7 +453,9 @@ namespace PGD
             entity = e;
             return true;
         }
+        #endregion
         
+        #region Internal Helpers
         private bool TryResolveSpawnArguments(IEntity templateEntity, out GameObject prefab, out Vector3 position, out Quaternion rotation, out Transform parent)
         {
             prefab = null;
@@ -534,7 +552,10 @@ namespace PGD
             var world = PGDGameContext.GetWorld();
             if (world == null) return false;
             var tmpl = world.CreateEntity(new GoLink(prefab, -1, prefab.name, true));
-            tmpl.AddComponent(new PGDLocalTransform());
+            tmpl.AddComponent(new PGDLocalTransform {
+                Position = prefab.transform.position,
+                Rotation = prefab.transform.rotation
+            });
             state.TemplateEntity = tmpl;
             template = tmpl;
             return true;
@@ -693,5 +714,6 @@ namespace PGD
             entity.Active = activate;
             return true;
         }
+        #endregion
     }
 }
