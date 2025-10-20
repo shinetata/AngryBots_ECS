@@ -7,9 +7,9 @@ namespace PGD
     /// Declares that the decorated PGD system should run before the specified systems.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
-    public sealed class PGDUpdateBeforeAttribute : Attribute
+    public sealed class UpdateSystemBeforeAttribute : Attribute
     {
-        public PGDUpdateBeforeAttribute(params Type[] systemTypes)
+        public UpdateSystemBeforeAttribute(params Type[] systemTypes)
         {
             TargetTypes = systemTypes ?? Array.Empty<Type>();
         }
@@ -21,9 +21,9 @@ namespace PGD
     /// Declares that the decorated PGD system should run after the specified systems.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
-    public sealed class PGDUpdateAfterAttribute : Attribute
+    public sealed class UpdateSystemAfterAttribute : Attribute
     {
-        public PGDUpdateAfterAttribute(params Type[] systemTypes)
+        public UpdateSystemAfterAttribute(params Type[] systemTypes)
         {
             TargetTypes = systemTypes ?? Array.Empty<Type>();
         }
@@ -35,7 +35,7 @@ namespace PGD
     /// Prevents the decorated PGD system from being auto-registered by <see cref="PGDContextBootstrap"/>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-    public sealed class PGDDisableAutoRegisterAttribute : Attribute
+    public sealed class DisableAutoRegisterAttribute : Attribute
     {
     }
 }

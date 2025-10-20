@@ -90,7 +90,7 @@ public static class PGDContextBootstrap
                         type.IsGenericTypeDefinition ||
                         !SystemBaseType.IsAssignableFrom(type) ||
                         type.GetConstructor(Type.EmptyTypes) == null ||
-                        Attribute.IsDefined(type, typeof(PGDDisableAutoRegisterAttribute)))
+                        Attribute.IsDefined(type, typeof(DisableAutoRegisterAttribute)))
                     {
                         continue;
                     }
@@ -232,17 +232,17 @@ public static class PGDContextBootstrap
 
             public void CollectAttributes()
             {
-                foreach (var attr in Type.GetCustomAttributes(typeof(PGDUpdateBeforeAttribute), true))
+                foreach (var attr in Type.GetCustomAttributes(typeof(UpdateSystemBeforeAttribute), true))
                 {
-                    if (attr is PGDUpdateBeforeAttribute beforeAttr)
+                    if (attr is UpdateSystemBeforeAttribute beforeAttr)
                     {
                         AddTargets(UpdateBeforeTargets, beforeAttr.TargetTypes);
                     }
                 }
 
-                foreach (var attr in Type.GetCustomAttributes(typeof(PGDUpdateAfterAttribute), true))
+                foreach (var attr in Type.GetCustomAttributes(typeof(UpdateSystemAfterAttribute), true))
                 {
-                    if (attr is PGDUpdateAfterAttribute afterAttr)
+                    if (attr is UpdateSystemAfterAttribute afterAttr)
                     {
                         AddTargets(UpdateAfterTargets, afterAttr.TargetTypes);
                     }
