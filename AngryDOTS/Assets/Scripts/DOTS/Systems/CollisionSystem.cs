@@ -19,6 +19,7 @@ using PGD;
 using PGD.Jobs;
 
 [BurstCompile] // Enable Burst compilation
+[PGDUpdateAfter(typeof(TurnTowardsPlayerSystem))]
 partial class CollisionSystem : PGDSystem, IJobifiedSystem
 {
     // The three queries this system will be using (Enemies, Bullets, and Player)

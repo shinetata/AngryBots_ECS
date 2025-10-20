@@ -15,6 +15,7 @@ using Unity.Collections;
 using PGD.Jobs;
 
 [BurstCompile] // Enable Burst compilation
+[PGDUpdateAfter(typeof(CollisionSystem))]
 partial class MoveForwardSystem : PGDSystem<PGDLocalTransform, MoveSpeed>, IJobifiedSystem
 {
     private NativeArray<PGDLocalTransform> transforms;

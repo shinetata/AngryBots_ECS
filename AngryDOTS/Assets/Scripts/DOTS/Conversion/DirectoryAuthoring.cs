@@ -10,7 +10,6 @@ using Unity.Entities;
 using UnityEngine;
 using PGD;
 
-[DefaultExecutionOrder(-3200)]
 // This script will go on the Directory GameOject in the sub-scene
 public class DirectoryAuthoring : MonoBehaviour
 {
@@ -19,25 +18,6 @@ public class DirectoryAuthoring : MonoBehaviour
     // This class, Baker, is embedded in the DirectoryAuthoring class directly (though
     // it doesn't have to be, this is just nice and clean). It manages the baking
     // process that converts this GameObject to an Entity
-    private void Awake()
-    {
-        var defaultWorld = PGDGameContext.GetWorld();
-        var defaultJobMananger = PGDGameContext.GetJobManager();
-        defaultWorld.RegisterSystem(new TimedDestroySystem());
-        defaultWorld.RegisterSystem(new RemoveDeadSystem());
-        var turnSys = new TurnTowardsPlayerSystem();
-        defaultWorld.RegisterSystem(turnSys);
-        defaultJobMananger.Register(turnSys);
-        var collSys = new CollisionSystem();
-        defaultWorld.RegisterSystem(collSys);
-        defaultJobMananger.Register(collSys);
-        var moveSys = new MoveForwardSystem();
-        defaultWorld.RegisterSystem(moveSys);
-        defaultJobMananger.Register(moveSys);
-        
-        // PGDHyBridLoader.InitializeAllHybrids();
-    }
-
     class Baker : PGDHyBrid<DirectoryAuthoring>
     {
         // The one method of this class. This is where the baking work is done
@@ -47,8 +27,10 @@ public class DirectoryAuthoring : MonoBehaviour
             // means that this is an entity that doesn't have / need a transform
             IEntity entity = GetHyBridEntity();
             var enemyEntity = GetHyBridEntity(authoring.enemyPrefab);
+            PGDObjectPool.Instance.WarmupPool(authoring.enemyPrefab, 20);
             
             var bulletEntity = GetHyBridEntity(authoring.bulletPrefab);
+            PGDObjectPool.Instance.WarmupPool(authoring.bulletPrefab, 50);
             // We will add a new Directory data component (defined below) to this entity
             AddComponent(entity, new Directory { // Here we use GetEntity to "convert" (bake) the bullet and enemy prefabs and
             // store them as data on this entity. Note that "authoring" is how we access

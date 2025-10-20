@@ -1,6 +1,7 @@
 using PGD;
 using UnityEngine;
 
+[PGDDisableAutoRegister]
 public class HybridTransformSync : PGDSystem<GoLink, PGDLocalTransform>
 {
     protected override void OnUpdate()

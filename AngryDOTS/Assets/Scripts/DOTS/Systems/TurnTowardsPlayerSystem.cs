@@ -14,6 +14,7 @@ using Unity.Collections;
 using System.Linq;
 
 [BurstCompile] // Enable Burst compilation
+[PGDUpdateAfter(typeof(RemoveDeadSystem))]
 partial class TurnTowardsPlayerSystem : PGDSystem<PGDLocalTransform, EnemyTag>, IJobifiedSystem
 {
     public Dependency dependency;
