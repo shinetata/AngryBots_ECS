@@ -3,7 +3,7 @@ using UnityEngine;
 using PGD;
 
 
-public abstract class PGDHyBrid<TAuthoring> where TAuthoring : Component
+public abstract class PGDHybrid<TAuthoring> where TAuthoring : Component
 {
     private TAuthoring _contextAuthoring;
 
@@ -14,20 +14,20 @@ public abstract class PGDHyBrid<TAuthoring> where TAuthoring : Component
         _contextAuthoring = authoring;
     }
 
-    protected IEntity GetHyBridEntity(TAuthoring authoring)
+    protected IEntity GetHybridEntity(TAuthoring authoring)
     {
         var prefab = authoring.gameObject;
-        return GetHyBridEntity(prefab);
+        return GetHybridEntity(prefab);
     }
 
-    protected IEntity GetHyBridEntity()
+    protected IEntity GetHybridEntity()
     {
         if (_contextAuthoring == null)
-            throw new InvalidOperationException("PGDHyBrid: Context not set.");
-        return GetHyBridEntity(_contextAuthoring);
+            throw new InvalidOperationException("PGDHybrid: Context not set.");
+        return GetHybridEntity(_contextAuthoring);
     }
 
-    protected IEntity GetHyBridEntity(GameObject prefab)
+    protected IEntity GetHybridEntity(GameObject prefab)
     {
         if (!prefab) throw new ArgumentNullException(nameof(prefab));
         if (!PGDObjectPool.Instance.IsInitialized(prefab))
@@ -59,8 +59,8 @@ public abstract class PGDHyBrid<TAuthoring> where TAuthoring : Component
 
 /// <summary>控制同一 Authoring 上多个 Hybrid 的顺序（数值越小越早）。</summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-public sealed class PGDHyBridOrderAttribute : Attribute
+public sealed class PGDHybridOrderAttribute : Attribute
 {
     public readonly int Order;
-    public PGDHyBridOrderAttribute(int order) => Order = order;
+    public PGDHybridOrderAttribute(int order) => Order = order;
 }

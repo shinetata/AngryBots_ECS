@@ -3,7 +3,7 @@ using UnityEngine;
 using System.Collections.Generic;
 
 [DefaultExecutionOrder(-500)]
-public class PGDHyBridManager : MonoBehaviour
+public class PGDHybridManager : MonoBehaviour
 {
     [SerializeField] private List<GameObject> prefabList = new List<GameObject>();
     [SerializeField] private int prewarmPerPrefab = 0;

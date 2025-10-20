@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public static class PGDHyBridBootstrap
+public static class PGDHybridBootstrap
 {
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void Reset() => s_Helper = null;
@@ -14,13 +14,13 @@ public static class PGDHyBridBootstrap
 
         var go = new GameObject("PGDHybridBootstrapper");
         Object.DontDestroyOnLoad(go);
-        s_Helper = go.AddComponent<PGDHyBridBootstrapper>();
+        s_Helper = go.AddComponent<PGDHybridBootstrapper>();
     }
 
-    private static PGDHyBridBootstrapper s_Helper;
+    private static PGDHybridBootstrapper s_Helper;
 }
 
-sealed class PGDHyBridBootstrapper : MonoBehaviour
+sealed class PGDHybridBootstrapper : MonoBehaviour
 {
     private readonly HashSet<int> _processedScenes = new HashSet<int>();
 
@@ -72,6 +72,6 @@ sealed class PGDHyBridBootstrapper : MonoBehaviour
             return;
         }
 
-        PGDHyBridLoader.RunHandlesOnScene(scene);
+        PGDHybridLoader.RunHandlesOnScene(scene);
     }
 }

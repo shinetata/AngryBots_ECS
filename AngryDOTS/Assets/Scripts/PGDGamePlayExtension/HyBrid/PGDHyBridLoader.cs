@@ -10,11 +10,11 @@ using UnityEditor;
 #endif
 
 /// <summary>
-/// 负责构建和管理 PGDHyBrid 注册表，并提供统一的 Hybrid 初始化入口。
+/// 负责构建和管理 PGDHybrid 注册表，并提供统一的 Hybrid 初始化入口。
 /// 可在任意自定义时机手动调用，以配合不同的场景加载流程。
 /// </summary>
 [Preserve]
-public static class PGDHyBridLoader
+public static class PGDHybridLoader
 {
     private static bool s_Initialized;
     private static Dictionary<Type, List<IInvoker>> s_Registry;
@@ -32,11 +32,11 @@ public static class PGDHyBridLoader
     [Preserve]
     private sealed class Invoker<TAuthoring> : IInvoker where TAuthoring : Component
     {
-        private readonly PGDHyBrid<TAuthoring> _impl;
+        private readonly PGDHybrid<TAuthoring> _impl;
         public Type AuthoringType => typeof(TAuthoring);
         public int Order { get; }
 
-        public Invoker(PGDHyBrid<TAuthoring> impl, int order)
+        public Invoker(PGDHybrid<TAuthoring> impl, int order)
         {
             _impl = impl;
             Order = order;
@@ -90,7 +90,7 @@ public static class PGDHyBridLoader
 
             for (var bt = t.BaseType; bt != null; bt = bt.BaseType)
             {
-                if (!bt.IsGenericType || bt.GetGenericTypeDefinition() != typeof(PGDHyBrid<>))
+                if (!bt.IsGenericType || bt.GetGenericTypeDefinition() != typeof(PGDHybrid<>))
                     continue;
 
                 var authoringType = bt.GetGenericArguments()[0];
@@ -99,7 +99,7 @@ public static class PGDHyBridLoader
                 var impl = Activator.CreateInstance(t);
                 if (impl == null) break;
 
-                var orderAttr = t.GetCustomAttribute<PGDHyBridOrderAttribute>();
+                var orderAttr = t.GetCustomAttribute<PGDHybridOrderAttribute>();
                 int order = orderAttr?.Order ?? 0;
 
                 var invokerType = typeof(Invoker<>).MakeGenericType(authoringType);
@@ -218,7 +218,7 @@ public static class PGDHyBridLoader
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"PGDHyBridLoader: Failed to inspect serialized references on {comp.GetType().Name}: {ex.Message}");
+                Debug.LogWarning($"PGDHybridLoader: Failed to inspect serialized references on {comp.GetType().Name}: {ex.Message}");
             }
         }
 

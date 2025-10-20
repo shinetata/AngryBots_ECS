@@ -13,7 +13,7 @@ public class ProjectileAuthoring : MonoBehaviour
     // This class, Baker, is embedded in the ProjectileAuthoring class directly (though
     // it doesn't have to be, this is just nice and clean). It manages the baking
     // process that converts this GameObject to an Entity
-    public class ProjectileBaker : PGDHyBrid<ProjectileAuthoring>
+    public class ProjectileBaker : PGDHybrid<ProjectileAuthoring>
     {
         // The one method of this class. This is where the baking work is done
         public override void Handle(ProjectileAuthoring authoring)
@@ -25,7 +25,7 @@ public class ProjectileAuthoring : MonoBehaviour
             var projectileBehavior = authoring.GetComponent<ProjectileBehaviour>();
             // Create a new entity. We use TransformUsageFlags.Dynamic because this
             // entity can both move and be rendered
-            IEntity entity = GetHyBridEntity();
+            IEntity entity = GetHybridEntity();
             // Add the MoveForwardTag data components to this entity. These components
             // are "tags" because they contain no data and are just used for identification
             // purposes. Note that unlike enemies and players, the projectiles have no "tag"

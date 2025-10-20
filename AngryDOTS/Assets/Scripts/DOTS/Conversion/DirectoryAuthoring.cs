@@ -18,18 +18,18 @@ public class DirectoryAuthoring : MonoBehaviour
     // This class, Baker, is embedded in the DirectoryAuthoring class directly (though
     // it doesn't have to be, this is just nice and clean). It manages the baking
     // process that converts this GameObject to an Entity
-    class Baker : PGDHyBrid<DirectoryAuthoring>
+    class Baker : PGDHybrid<DirectoryAuthoring>
     {
         // The one method of this class. This is where the baking work is done
         public override void Handle(DirectoryAuthoring authoring)
         {
             // First we create an empty entity. The TransformUsageFlags.None
             // means that this is an entity that doesn't have / need a transform
-            IEntity entity = GetHyBridEntity();
-            var enemyEntity = GetHyBridEntity(authoring.enemyPrefab);
+            IEntity entity = GetHybridEntity();
+            var enemyEntity = GetHybridEntity(authoring.enemyPrefab);
             PGDObjectPool.Instance.WarmupPool(authoring.enemyPrefab, 20);
             
-            var bulletEntity = GetHyBridEntity(authoring.bulletPrefab);
+            var bulletEntity = GetHybridEntity(authoring.bulletPrefab);
             PGDObjectPool.Instance.WarmupPool(authoring.bulletPrefab, 50);
             // We will add a new Directory data component (defined below) to this entity
             AddComponent(entity, new Directory { // Here we use GetEntity to "convert" (bake) the bullet and enemy prefabs and

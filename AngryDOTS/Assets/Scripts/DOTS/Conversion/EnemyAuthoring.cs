@@ -13,7 +13,7 @@ public class EnemyAuthoring : MonoBehaviour
     // This class, Baker, is embedded in the EnemyAuthoring class directly (though
     // it doesn't have to be, this is just nice and clean). It manages the baking
     // process that converts this GameObject to an Entity
-    public class EnemyBaker : PGDHyBrid<EnemyAuthoring>
+    public class EnemyBaker : PGDHybrid<EnemyAuthoring>
     {
         // The one method of this class. This is where the baking work is done
         public override void Handle(EnemyAuthoring authoring)
@@ -25,7 +25,7 @@ public class EnemyAuthoring : MonoBehaviour
             var enemyBehaviour = authoring.GetComponent<EnemyBehaviour>();
             // Create a new entity. We use TransformUsageFlags.Dynamic because this
             // entity can both move and be rendered
-            IEntity entity = GetHyBridEntity();
+            IEntity entity = GetHybridEntity();
             // Add the EnemyTag and MoveForwardTag data components to this entity. These
             // components are "tags" because they contain no data and are just used for
             // identification purposes
