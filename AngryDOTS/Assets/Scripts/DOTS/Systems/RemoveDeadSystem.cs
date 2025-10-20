@@ -9,7 +9,6 @@ using Unity.Collections;
 using PGD;
 
 [BurstCompile]
-[PGDUpdateAfter(typeof(TimedDestroySystem))]
 partial class RemoveDeadSystem : PGDSystem
 {
     [BurstCompile]
