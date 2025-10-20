@@ -35,7 +35,7 @@ public class DirectoryAuthoring : MonoBehaviour
         defaultWorld.RegisterSystem(moveSys);
         defaultJobMananger.Register(moveSys);
         
-        PGDHyBridLoader.InitializeAllHybrids();
+        // PGDHyBridLoader.InitializeAllHybrids();
     }
 
     class Baker : PGDHyBrid<DirectoryAuthoring>
