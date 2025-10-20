@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -21,12 +22,56 @@ public static class PGDHyBridBootstrap
 
 sealed class PGDHyBridBootstrapper : MonoBehaviour
 {
-    void Awake() => PGDHyBridLoader.InitializeAllHybrids();
-    void OnEnable() => SceneManager.sceneLoaded += OnSceneLoaded;
-    void OnDisable() => SceneManager.sceneLoaded -= OnSceneLoaded;
+    private readonly HashSet<int> _processedScenes = new HashSet<int>();
+
+    void Awake()
+    {
+        int sceneCount = SceneManager.sceneCount;
+        for (int i = 0; i < sceneCount; i++)
+        {
+            var scene = SceneManager.GetSceneAt(i);
+            ProcessScene(scene, force: true);
+        }
+    }
+
+    void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        SceneManager.sceneUnloaded += OnSceneUnloaded;
+    }
+
+    void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        SceneManager.sceneUnloaded -= OnSceneUnloaded;
+        _processedScenes.Clear();
+    }
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        ProcessScene(scene);
+    }
+
+    void OnSceneUnloaded(Scene scene)
+    {
+        if (!scene.IsValid()) return;
+        _processedScenes.Remove(scene.handle);
+    }
+
+    private void ProcessScene(Scene scene, bool force = false)
+    {
+        if (!scene.IsValid()) return;
+
+        int handle = scene.handle;
+        if (force)
+        {
+            _processedScenes.Add(handle);
+        }
+        else if (!_processedScenes.Add(handle))
+        {
+            return;
+        }
+
         PGDHyBridLoader.RunHandlesOnScene(scene);
     }
 }

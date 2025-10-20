@@ -9,13 +9,14 @@ namespace PGD
     {
         public GameObject Prefab { get; }
         public List<GameObject> Objects { get; } = new List<GameObject>();
-        public Queue<int> AvailableIds { get; } = new Queue<int>();
-        public HashSet<int> ActiveIds { get; } = new HashSet<int>(); // 跟踪活跃对象，防重复回收
+        public Stack<int> AvailableIds { get; } = new Stack<int>();
         public List<IEntity> Entities { get; } = new List<IEntity>();
+        public List<bool> ActiveFlags { get; } = new List<bool>();
         public IEntity TemplateEntity;
         public int NextId { get; set; } = 0;
         public int MaxSize { get; set; } = DEFAULT_MAX_SIZE;
-        private const int DEFAULT_MAX_SIZE = 10000; // 默认最大容量
+        private const int DEFAULT_MAX_SIZE = 10000; // Ĭ���������
+        private int _activeCount;
 
         public PoolState(GameObject prefab)
         {
@@ -23,10 +24,49 @@ namespace PGD
         }
 
         public int TotalCount => Objects.Count;
-        public int ActiveCount => ActiveIds.Count;
+        public int ActiveCount => _activeCount;
         public int InactiveCount => AvailableIds.Count;
         public bool IsFull => TotalCount >= MaxSize;
         public bool IsEmpty => TotalCount == 0;
+
+        public void EnsureSlotCapacity(int id)
+        {
+            while (ActiveFlags.Count <= id)
+            {
+                ActiveFlags.Add(false);
+            }
+        }
+
+        public void MarkActive(int id)
+        {
+            EnsureSlotCapacity(id);
+            if (!ActiveFlags[id])
+            {
+                ActiveFlags[id] = true;
+                _activeCount++;
+            }
+        }
+
+        public void MarkInactive(int id)
+        {
+            if (id < 0 || id >= ActiveFlags.Count) return;
+            if (ActiveFlags[id])
+            {
+                ActiveFlags[id] = false;
+                _activeCount--;
+            }
+        }
+
+        public bool IsActive(int id)
+        {
+            return id >= 0 && id < ActiveFlags.Count && ActiveFlags[id];
+        }
+
+        public void ResetActivity()
+        {
+            ActiveFlags.Clear();
+            _activeCount = 0;
+        }
     }
 
     public class PGDObjectPool
@@ -220,7 +260,7 @@ namespace PGD
 
             if (state.AvailableIds.Count > 0)
             {
-                id = state.AvailableIds.Dequeue();
+                id = state.AvailableIds.Pop();
             }
             else
             {
@@ -236,7 +276,7 @@ namespace PGD
             ActivateObject(obj, position, rotation, parent);
 
             // 标记为活跃并同步槽位实体
-            state.ActiveIds.Add(id);
+            state.MarkActive(id);
             if (!SyncSlotEntity(state, prefab, id, obj, true))
             {
                 Debug.LogError($"SpawnObject failed: entity sync error. Prefab={prefab.name}, Id={id}");
@@ -275,7 +315,7 @@ namespace PGD
         {
             if (!IsInitialized(prefab) || id < 0 || id >= pools[prefab].Objects.Count)
                 return false;
-            return pools[prefab].ActiveIds.Contains(id);
+            return pools[prefab].IsActive(id);
         }
         #endregion
 
@@ -314,7 +354,7 @@ namespace PGD
 
             state.Objects.Clear();
             state.AvailableIds.Clear();
-            state.ActiveIds.Clear();
+            state.ResetActivity();
             state.NextId = 0;
         }
 
@@ -340,14 +380,25 @@ namespace PGD
             int currentCount = state.TotalCount;
             int capacityLeft = state.MaxSize - currentCount;
             int toAdd = Mathf.Clamp(capacityLeft, 0, count);
+            int targetCount = currentCount + toAdd;
+
+            if (state.Objects.Capacity < targetCount)
+            {
+                state.Objects.Capacity = targetCount;
+            }
+            if (state.Entities.Capacity < targetCount)
+            {
+                state.Entities.Capacity = targetCount;
+            }
 
             for (int i = 0; i < toAdd; i++)
             {
                 GameObject obj = Object.Instantiate(prefab);
                 obj.SetActive(false);
                 state.Objects.Add(obj);
-                state.AvailableIds.Enqueue(currentCount + i);
-                // 建立实例 -> prefab 的全局映射
+                state.AvailableIds.Push(currentCount + i);
+                state.EnsureSlotCapacity(currentCount + i);
+                // ����ʵ�� -> prefab ��ȫ��ӳ��
                 instanceToPrefab[obj] = prefab;
 
                 if (TryEnsureTemplateEntity(prefab, out var templateEntity))
@@ -356,11 +407,8 @@ namespace PGD
                     var entity = templateEntity.CloneEntity();
                     entity.Set(new GoLink(obj, id, prefab.name, false));
                     entity.RemoveTag<PrefabTag>();
-                    entity.Active = false; // 预热创建的槽位实体默认非激活
-                    while (state.Entities.Count <= id)
-                    {
-                        state.Entities.Add(default);
-                    }
+                    entity.Active = false; // Ԥ�ȴ����Ĳ�λʵ��Ĭ�ϷǼ���
+                    EnsureEntityListSize(state, id);
                     state.Entities[id] = entity;
                 }
             }
@@ -530,6 +578,7 @@ namespace PGD
             obj.SetActive(false);
             int id = state.NextId++;
             state.Objects.Add(obj);
+            state.EnsureSlotCapacity(state.Objects.Count - 1);
             // 建立实例 -> prefab 的全局映射
             instanceToPrefab[obj] = prefab;
 
@@ -578,6 +627,7 @@ namespace PGD
             {
                 state.Entities.Add(default);
             }
+            state.EnsureSlotCapacity(id);
         }
 
         // 若对象槽位被外部销毁，则自愈重建，保持原实体的 GoLink 绑定
@@ -589,6 +639,7 @@ namespace PGD
                 obj = Object.Instantiate(prefab);
                 obj.SetActive(false);
                 state.Objects[id] = obj;
+                state.EnsureSlotCapacity(id);
                 // 更新实例 -> prefab 的全局映射
                 instanceToPrefab[obj] = prefab;
                 Debug.LogWarning($"Replaced destroyed object at id {id} for {prefab.name}");
@@ -651,7 +702,7 @@ namespace PGD
                 return;
             }
             var state = pools[prefab];
-            if (!state.ActiveIds.Contains(id))
+            if (!state.IsActive(id))
             {
                 Debug.LogWarning($"Trying to return inactive object id {id} for {prefab.name}");
                 return;
@@ -675,8 +726,8 @@ namespace PGD
                     }  
                 }
             }
-            state.AvailableIds.Enqueue(id);
-            state.ActiveIds.Remove(id);
+            state.AvailableIds.Push(id);
+            state.MarkInactive(id);
         }
 
         private void ReturnObjectByInstance(GameObject instance, int goId, CommandQueue queue = null)
