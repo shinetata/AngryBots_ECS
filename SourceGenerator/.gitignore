@@ -1,0 +1,12 @@
+## 忽略编译输出
+bin/
+obj/
+
+## 忽略 IDE 文件
+.vs/
+*.user
+*.suo
+
+## 忽略 NuGet 包
+*.nupkg
+
