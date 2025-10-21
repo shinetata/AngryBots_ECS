@@ -1,3 +1,4 @@
+using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using PGD.Jobs.SourceGenerator.Models;
@@ -58,14 +59,47 @@ namespace PGD.Jobs.SourceGenerator.Analyzer
         {
             foreach (var parameter in executeMethod.Parameters)
             {
-                jobInfo.Parameters.Add(new ParameterInfo
+                var parameterType = parameter.Type;
+                var typeFullName = parameterType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                var parameterInfo = new ParameterInfo
                 {
                     Name = parameter.Name,
-                    Type = parameter.Type,
-                    TypeFullName = parameter.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                    Type = parameterType,
+                    TypeName = parameterType.Name,
+                    TypeFullName = typeFullName,
                     RefKind = parameter.RefKind
-                });
+                };
+
+                if (IsEntityParameter(parameterType, typeFullName))
+                {
+                    parameterInfo.IsEntity = true;
+                }
+                else if (IsEntityIndexParameter(parameter))
+                {
+                    parameterInfo.IsEntityIndex = true;
+                }
+
+                jobInfo.Parameters.Add(parameterInfo);
             }
+        }
+
+        private static bool IsEntityParameter(ITypeSymbol parameterType, string typeFullName)
+        {
+            if (parameterType.Name == "IEntity")
+                return true;
+
+            if (typeFullName == "global::PGD.IEntity")
+                return true;
+
+            return typeFullName.EndsWith(".IEntity", StringComparison.Ordinal);
+        }
+
+        private static bool IsEntityIndexParameter(IParameterSymbol parameter)
+        {
+            if (parameter.Type.SpecialType != SpecialType.System_Int32)
+                return false;
+
+            return string.Equals(parameter.Name, "entityIndex", StringComparison.Ordinal);
         }
 
         /// <summary>

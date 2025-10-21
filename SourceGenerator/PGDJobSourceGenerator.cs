@@ -154,7 +154,7 @@ namespace PGD.Jobs.SourceGenerator
             // 生成一个静态类，包含该 Job 的扩展方法
             // 使用 file 关键字限制作用域，避免命名冲突
             builder.AppendXmlComment($"Generated extension methods for {jobInfo.JobName}");
-            builder.AppendLine($"file static class {jobInfo.JobName}Extensions");
+            builder.AppendLine($"internal static class {jobInfo.JobName}Extensions");
             builder.OpenBrace();
 
             // ScheduleParallel() - DOTS 风格无参数版本

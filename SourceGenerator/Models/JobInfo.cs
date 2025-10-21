@@ -65,6 +65,11 @@ namespace PGD.Jobs.SourceGenerator.Models
         public ITypeSymbol Type { get; set; } = null!;
 
         /// <summary>
+        /// 参数类型的名称（不包含命名空间）
+        /// </summary>
+        public string TypeName { get; set; } = string.Empty;
+
+        /// <summary>
         /// 参数类型的完整名称
         /// </summary>
         public string TypeFullName { get; set; } = string.Empty;
@@ -88,6 +93,36 @@ namespace PGD.Jobs.SourceGenerator.Models
         /// 是否是只写访问（out）
         /// </summary>
         public bool IsWriteOnly => RefKind == RefKind.Out;
+
+        /// <summary>
+        /// 是否是实体参数（IEntity）
+        /// </summary>
+        public bool IsEntity { get; set; }
+
+        /// <summary>
+        /// 是否是实体索引参数（int entityIndex）
+        /// </summary>
+        public bool IsEntityIndex { get; set; }
+
+        /// <summary>
+        /// 是否是组件参数（既不是实体也不是索引）
+        /// </summary>
+        public bool IsComponent => !IsEntity && !IsEntityIndex;
+
+        /// <summary>
+        /// 是否需要写回（ref 组件参数）
+        /// </summary>
+        public bool RequiresWriteBack => IsComponent && RefKind == RefKind.Ref;
+
+        /// <summary>
+        /// 是否是只读组件参数
+        /// </summary>
+        public bool IsReadOnlyComponent => IsComponent && IsReadOnly;
+
+        /// <summary>
+        /// 是否是可写组件参数（ref 组件）
+        /// </summary>
+        public bool IsWritableComponent => IsComponent && RefKind == RefKind.Ref;
     }
 }
 
