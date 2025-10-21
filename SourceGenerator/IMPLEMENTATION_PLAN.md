@@ -529,3 +529,6 @@ job.ScheduleParallel();  // IDE 不报错！
 
 **目标已达成**：开发者只需要把 `IJobEntity` 改成 `IJobParallel`！✅
 
+### 后续待办
+- ⛳ 支持 `partial class XXX : PGDSystem`（非 `PGDJobSystemBase`）调用 `ScheduleParallel()`，为未使用 `PGDJobSystemBase` 的系统提供运行时上下文桥接。
+
