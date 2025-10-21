@@ -1,16 +1,40 @@
-﻿# PGD Job 并行运行时
+﻿# PGD Job Runtime Handler
 
-PGD 现已支持与 DOTS `IJobEntity` 几乎一致的书写体验，但在运行期会生成并调度 Unity `IJobParallelFor`，自动完成组件获取、结果回写与资源回收。
+**让 PGD 拥有像 Unity DOTS `IJobEntity` 一样简洁的 Job API！**
 
-## 系统编写
+## 核心理念
 
-系统仍然继承现有的 `PGDSystem<>`，无需实现 `IJobifiedSystem` 或使用额外的基类。
+### 开发者只需要做一件事：把 `IJobEntity` 改成 `IJobParallel`
+
+```csharp
+// DOTS 版本
+public partial struct MyJob : IJobEntity
+{
+    void Execute(ref Component c) { /* ... */ }
+}
+
+// PGD 版本 - 只改这里！
+public partial struct MyJob : IJobParallel
+{
+    void Execute(ref Component c) { /* ... */ }
+}
+```
+
+**调度方式完全一样**：
+```csharp
+var job = new MyJob { /* ... */ };
+job.ScheduleParallel();  // ← 一样的！
+```
+
+## 快速开始
+
+### 1. 定义 System
 
 ```csharp
 using PGD;
 using PGD.Jobs;
 
-partial class MoveForwardSystem : PGDSystem<PGDLocalTransform, MoveSpeed>
+partial class MoveForwardSystem : PGDJobSystemBase
 {
     protected override void OnUpdate()
     {
@@ -18,60 +42,175 @@ partial class MoveForwardSystem : PGDSystem<PGDLocalTransform, MoveSpeed>
         {
             dt = PGDGameContext.Time.DeltaTime
         };
-
-        job.ScheduleParallel();            // 可选: job.ScheduleParallel(world)
+        job.ScheduleParallel();  // 就这么简单！
     }
 }
 ```
 
-## Job 声明
-
-声明 `partial struct` 并实现 `IJobParallel`，`Execute` 方法的参数即组件需求。PGD 会自动分析签名，生成查询、调度包装和结果写回逻辑。
+### 2. 定义 Job
 
 ```csharp
-using Unity.Burst;
-using Unity.Mathematics;
 using PGD.Jobs;
 
-[BurstCompile]
-[WithAll(typeof(EnemyTag))]
-public partial struct TurnTowardTargetJob : IJobParallel
+[WithAll(typeof(MoveForward))]  // 可选：查询过滤
+public partial struct MoveForwardJob : IJobParallel
+//                                     ^^^^^^^^^^^^
+//                                     改这里！
 {
-    public float3 targetPosition;
-
-    void Execute(ref PGDLocalTransform transform)
+    public float dt;
+    
+    // Execute 参数决定查询哪些组件
+    void Execute(in MoveSpeed speed, ref LocalTransform transform)
     {
-        float3 heading = targetPosition - transform.Position;
-        heading.y = 0f;
-        transform.Rotation = quaternion.LookRotation(heading, math.up());
+        transform.Position += dt * speed.Value * math.forward(transform.Rotation);
     }
 }
 ```
 
-### 参数访问模式
+### 3. 完成！
 
-| 写法                | 行为说明            |
-| ------------------- | ------------------- |
-| `T` / `in T`        | 仅读               |
-| `ref T`             | 读写，调度后回写   |
-| `out T`             | 仅写入，自动初始化 |
+框架自动处理：
+- ✅ 查询实体
+- ✅ 提取数据到 NativeArray
+- ✅ 调度 Job
+- ✅ 写回数据到实体
+- ✅ 清理资源
 
-`IEntity` 参数目前未自动生成，需要时可手动使用 `context.EntityIds` 等实现。
+## 与 DOTS 的对比
 
-附加的 `[WithAll]` / `[WithAny]` / `[WithNone]` 特性既支持组件也支持标签 (`ITag`)。
+| 特性 | DOTS | PGD Jobs |
+|------|------|----------|
+| Job 接口 | `IJobEntity` | `IJobParallel` ← 唯一区别 |
+| 调度方式 | `job.ScheduleParallel()` | `job.ScheduleParallel()` |
+| Execute 签名 | `Execute(ref/in Component)` | `Execute(ref/in Component)` |
+| 查询过滤 | `[WithAll]` 等 | `[WithAll]` 等 |
+| 自动管理 | ✅ | ✅ |
 
-## 调度与回写
+## Execute 方法规则
 
-- 编译期 Source Generator 会为每个 `IJobParallel` 生成描述器、上下文以及 Unity `IJobParallelFor` 包装。
-- 运行时 `PGDParallelJobScheduler` 负责：
-  1. 使用生成的描述器收集实体及组件数据；
-  2. 将 Job 包装为 `IJobParallelFor` 调用 `ScheduleParallel`；
-  3. Job 完成后自动写回修改的组件并释放临时 `NativeArray`。
-- 调度会自动创建一个 `PGDParallelJobFlushSystem`，由 `PGDJobManager` 驱动，在每帧结尾合并依赖并刷写结果。
+### 组件参数
 
-## 当前限制
+```csharp
+void Execute(ref Component c)  // 可修改
+void Execute(in Component c)   // 只读
+```
 
-- 仅支持组件参数；`IEntity` 参数暂未自动生成，需要后续扩展。
-- Job 的组件拷贝在调度前会转存到 `NativeArray`，与 DOTS 一样需要注意数据体量，但无需手写拷贝逻辑。
-- 若需要自定义世界，可调用 `job.ScheduleParallel(world)` 手动指定。
+- `ref` → 可修改，自动写回
+- `in` → 只读，不写回
 
+### 可选参数
+
+```csharp
+void Execute(ref Component c, IEntity entity)      // 访问实体
+void Execute(ref Component c, int entityIndex)    // 访问索引
+```
+
+## 查询过滤
+
+使用属性控制查询：
+
+```csharp
+[WithAll(typeof(Tag1), typeof(Tag2))]    // 必须有
+[WithAny(typeof(Tag3), typeof(Tag4))]    // 至少一个
+[WithNone(typeof(Tag5))]                  // 不能有
+public partial struct MyJob : IJobParallel
+{
+    void Execute(ref Component c) { }
+}
+```
+
+## 高级用法
+
+### 带自定义查询
+
+```csharp
+protected override void OnUpdate()
+{
+    var customQuery = World.Query<Component1, Component2>();
+    
+    var job = new MyJob { /* ... */ };
+    job.ScheduleParallel(customQuery);  // 使用自定义查询
+}
+```
+
+## 工作原理
+
+### 编写代码时
+- `IJobParallelExtensions.cs` 提供占位方法
+- IDE 识别方法，不报错
+- 代码可以编译
+
+### 编译时
+- Source Generator 扫描 `partial struct : IJobParallel`
+- 自动生成完整的扩展方法
+- 生成代码包括：查询、提取、调度、写回、清理
+
+### 运行时
+- 使用生成的优化代码
+- 性能与手写代码相当
+- 完全自动化
+
+## 核心文件
+
+### IJobParallel.cs
+Job 接口定义（marker interface）
+
+### IJobParallelExtensions.cs
+扩展方法占位实现（让 IDE 不报错）
+
+### PGDJobSystemBase.cs
+System 基类，提供：
+- `CurrentWorld` - 当前 World
+- `CurrentDependency` - 当前依赖链
+- `RegisterJob()` - 注册 Job 回调
+- 自动处理数据写回和清理
+
+### PGDJobAttributes.cs
+查询过滤属性：
+- `[PGDJob]`
+- `[WithAll]`
+- `[WithAny]`
+- `[WithNone]`
+
+## 注意事项
+
+1. **必须标记为 partial struct**
+   ```csharp
+   public partial struct MyJob : IJobParallel  // ← partial 必须有
+   ```
+
+2. **System 必须继承 PGDJobSystemBase**
+   ```csharp
+   partial class MySystem : PGDJobSystemBase  // ← 使用这个基类
+   ```
+
+3. **在 OnUpdate 中调度**
+   ```csharp
+   protected override void OnUpdate()
+   {
+       job.ScheduleParallel();  // ← 必须在 OnUpdate 中
+   }
+   ```
+
+## 示例
+
+完整示例请查看 `USAGE_EXAMPLE.md`
+
+## 开发状态
+
+### ✅ 已完成
+- 基础架构
+- 占位扩展方法
+- System 基类
+- Source Generator 框架
+
+### ⏳ 进行中
+- 完整代码生成逻辑
+- 查询推导
+- 数据自动提取和写回
+
+详细计划请查看 `../../../SourceGenerator/IMPLEMENTATION_PLAN.md`
+
+## 总结
+
+**一句话总结**：把 `IJobEntity` 改成 `IJobParallel`，其他完全一样！

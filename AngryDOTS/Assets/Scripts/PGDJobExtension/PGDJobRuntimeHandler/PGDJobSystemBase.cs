@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Unity.Jobs;
 
 namespace PGD.Jobs
@@ -10,6 +11,11 @@ namespace PGD.Jobs
     public abstract class PGDJobSystemBase : PgdSystemBase, IJobifiedSystem
     {
         private Dependency dependency;
+        
+        // 静态上下文，供生成的代码使用
+        [ThreadStatic] private static PGDJobSystemBase s_currentSystem;
+        private static readonly List<System.Action> s_syncCallbacks = new List<System.Action>();
+        private static readonly List<System.Action> s_disposeCallbacks = new List<System.Action>();
 
         /// <summary>
         /// Gets the PGD world associated with this system. Throws if the system is not registered with a world yet.
@@ -21,6 +27,39 @@ namespace PGD.Jobs
         /// Gets the current Dependency handle provided by <see cref="PGDJobManager"/>.
         /// </summary>
         protected JobHandle DependencyHandle => dependency?.jobs ?? default;
+
+        /// <summary>
+        /// 当前执行的 System（供生成的代码使用）
+        /// </summary>
+        public static PGDJobSystemBase CurrentSystem => s_currentSystem 
+            ?? throw new InvalidOperationException("No active PGDJobSystemBase. Ensure jobs are scheduled from within OnUpdate().");
+
+        /// <summary>
+        /// 当前的 World（供生成的代码使用）
+        /// </summary>
+        public static IECSWorld CurrentWorld => s_currentSystem?.World;
+
+        /// <summary>
+        /// 当前的依赖句柄（供生成的代码使用）
+        /// </summary>
+        public static JobHandle CurrentDependency => s_currentSystem?.DependencyHandle ?? default;
+
+        /// <summary>
+        /// 注册一个 Job 句柄，并添加完成后的回调
+        /// </summary>
+        public static void RegisterJob(JobHandle handle, System.Action onComplete = null, System.Action onDispose = null)
+        {
+            if (s_currentSystem == null)
+                throw new InvalidOperationException("Cannot register job outside of OnUpdate().");
+
+            s_currentSystem.CombineDependency(handle);
+            
+            if (onComplete != null)
+                s_syncCallbacks.Add(onComplete);
+            
+            if (onDispose != null)
+                s_disposeCallbacks.Add(onDispose);
+        }
 
         /// <summary>
         /// Combine a newly scheduled job handle with the shared dependency provided by <see cref="PGDJobManager"/>.
@@ -44,11 +83,25 @@ namespace PGD.Jobs
 
         void IJobifiedSystem.SyncDataBack()
         {
+            // 执行所有注册的同步回调
+            foreach (var callback in s_syncCallbacks)
+            {
+                callback?.Invoke();
+            }
+            s_syncCallbacks.Clear();
+            
             OnJobsSynced();
         }
 
         void IJobifiedSystem.Dispose()
         {
+            // 执行所有注册的清理回调
+            foreach (var callback in s_disposeCallbacks)
+            {
+                callback?.Invoke();
+            }
+            s_disposeCallbacks.Clear();
+            
             OnJobsDisposed();
         }
 
@@ -69,7 +122,15 @@ namespace PGD.Jobs
 
         protected sealed override void OnUpdateCollection()
         {
-            OnUpdate();
+            s_currentSystem = this;
+            try
+            {
+                OnUpdate();
+            }
+            finally
+            {
+                s_currentSystem = null;
+            }
         }
 
         /// <summary>

@@ -1,58 +1,35 @@
-using System;
 using Unity.Jobs;
+using PGD;
+using UnityEngine;
 
 namespace PGD.Jobs
 {
     /// <summary>
-    /// 为 IJobParallel 提供运行时扩展方法（基础实现）
-    /// Source Generator 会在编译期生成优化版本覆盖此实现
+    /// IJobParallel 的扩展方法（占位实现）
+    /// 实际的扩展方法由 Source Generator 在编译时为每个 Job 类型生成
     /// </summary>
     public static class IJobParallelExtensions
     {
         /// <summary>
-        /// 调度并行 Job（运行时回退实现）
-        /// 注意：此方法使用反射，性能较低。编译期 Source Generator 会生成优化版本。
+        /// 调度 IJobParallel Job 以进行并行执行（DOTS 风格 - 无参数）
+        /// 注意：Source Generator 会为每个具体的 Job 类型生成优化的扩展方法覆盖此实现
         /// </summary>
-        public static JobHandle ScheduleParallel<TJob>(
-            this ref TJob job,
-            JobHandle dependsOn = default)
+        public static void ScheduleParallel<TJob>(this ref TJob job)
             where TJob : struct, IJobParallel
         {
-            return ScheduleParallelInternal(ref job, null, dependsOn);
+            // 占位实现：如果看到这条警告，说明 Source Generator 没有生成代码
+            Debug.LogWarning($"[PGD.Jobs] {typeof(TJob).Name}.ScheduleParallel() is using fallback implementation. " +
+                           "Ensure Source Generator is properly configured and the Job is marked as 'partial struct'.");
         }
 
         /// <summary>
-        /// 调度并行 Job 到指定 World（运行时回退实现）
+        /// 调度 IJobParallel Job 以进行并行执行（带自定义查询）
         /// </summary>
-        public static JobHandle ScheduleParallel<TJob>(
-            this ref TJob job,
-            IECSWorld world,
-            JobHandle dependsOn = default)
+        public static void ScheduleParallel<TJob>(this ref TJob job, IQuery query)
             where TJob : struct, IJobParallel
         {
-            return ScheduleParallelInternal(ref job, world, dependsOn);
-        }
-
-        /// <summary>
-        /// 内部实现：使用反射调度 Job
-        /// 注意：这是运行时回退路径，仅在 Source Generator 未生成代码时使用
-        /// </summary>
-        private static JobHandle ScheduleParallelInternal<TJob>(
-            ref TJob job,
-            IECSWorld world,
-            JobHandle dependsOn)
-            where TJob : struct, IJobParallel
-        {
-            // 获取或创建运行时描述器
-            var descriptor = PGDJobReflectionRegistry.GetOrCreateDescriptor<TJob>();
-            
-            // 使用调度器调度
-            return PGDParallelJobScheduler.ScheduleParallel(
-                ref job,
-                descriptor,
-                world,
-                dependsOn);
+            Debug.LogWarning($"[PGD.Jobs] {typeof(TJob).Name}.ScheduleParallel(query) is using fallback implementation. " +
+                           "Ensure Source Generator is properly configured and the Job is marked as 'partial struct'.");
         }
     }
 }
-
