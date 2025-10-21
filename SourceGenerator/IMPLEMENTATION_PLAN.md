@@ -32,17 +32,49 @@
 - ✅ 识别 `partial struct : IJobParallel`
 - ✅ 验证必须是 `partial struct`
 - ✅ 分析 `Execute` 方法（通过 `JobAnalyzer`）
-- ✅ 生成扩展方法类（当前是 stub）
+- ✅ 生成扩展方法类（包含查询与数据提取逻辑）
 - ✅ 编译成功（Roslyn 3.8.0）
 
-**当前生成的代码**（stub 版本）：
+**当前生成的代码**（Phase 2 输出）：
 ```csharp
-file static class MoveForwardJobExtensions
+internal static class MoveForwardJobExtensions
 {
+    private static NativeArray<MoveSpeed> s_speedArray;
+    private static NativeArray<LocalTransform> s_transformArray;
+
     public static void ScheduleParallel(this ref MoveForwardJob job)
     {
-        Debug.Log("[PGD.Jobs] MoveForwardJob.ScheduleParallel() - Source Generator stub");
-        // TODO: 生成实际代码
+        var world = PGDJobSystemBase.CurrentWorld;
+        if (world == null)
+        {
+            Debug.LogError("[PGD.Jobs] MoveForwardJob.ScheduleParallel() can only be called inside PGDJobSystemBase.OnUpdate().");
+            return;
+        }
+
+        var query = world.Query();
+        var requiredComponents = new IComponents();
+        requiredComponents.Add<MoveSpeed>();
+        requiredComponents.Add<LocalTransform>();
+        query = query.WithAllComponents(requiredComponents);
+
+        var entities = query.Entities.ToEntitySet();
+        var entityCount = entities.Count;
+        if (entityCount == 0)
+            return;
+
+        if (s_speedArray.IsCreated) s_speedArray.Dispose();
+        s_speedArray = new NativeArray<MoveSpeed>(entityCount, Allocator.TempJob);
+        if (s_transformArray.IsCreated) s_transformArray.Dispose();
+        s_transformArray = new NativeArray<LocalTransform>(entityCount, Allocator.TempJob);
+
+        for (int i = 0; i < entityCount; i++)
+        {
+            var entity = entities[i];
+            s_speedArray[i] = entity.GetComponent<MoveSpeed>();
+            s_transformArray[i] = entity.GetComponent<LocalTransform>();
+        }
+
+        // TODO (Phase 3): 生成包装 Job、调度与写回。
     }
 }
 ```
@@ -77,8 +109,8 @@ public partial struct MoveForwardJob : IJobParallel  // ← 只改这里
 **状态**：
 - ✅ 代码可以编译
 - ✅ IDE 不报错
-- ✅ Source Generator 会生成代码（当前只是 stub）
-- ⚠️ 运行时会输出 Debug.Log 但不执行实际 Job
+- ✅ Source Generator 会自动生成查询与数据提取代码
+- ⚠️ 尚未生成包装 Job、调度与写回逻辑（Phase 3 待完成）
 
 ---
 
@@ -128,64 +160,21 @@ public partial struct MoveForwardJob : IJobParallel  // ← 只改这里
 
 ---
 
-### Phase 2：生成查询和数据提取代码 ⏳
+### Phase 2：生成查询和数据提取代码 ✅
 
-**目标**：自动生成查询和 NativeArray 提取逻辑
+**成果摘要**：
+1. Source Generator 会根据 `Execute` 里的组件参数，自动构建查询所需的 `IComponents` 并调用 `WithAllComponents`。
+2. 为所有组件参数生成静态 `NativeArray<T>` 缓存字段，且支持名称去重。
+3. 自动分配、填充 `EntitySet`，把组件数据复制进 `NativeArray`，为后续调度做好准备。
+4. 在进入 Phase 3 前，若找到现有缓冲会先释放，避免内存泄漏。
 
-**需要生成的代码**：
-```csharp
-file static class MoveForwardJobExtensions
-{
-    // 静态变量存储 NativeArray（避免每次分配）
-    private static Unity.Collections.NativeArray<MoveSpeed> s_speedArray;
-    private static Unity.Collections.NativeArray<LocalTransform> s_transformArray;
-    
-    public static void ScheduleParallel(this ref MoveForwardJob job)
-    {
-        // 1. 获取 World
-        var world = global::PGD.Jobs.PGDJobSystemBase.CurrentWorld;
-        if (world == null)
-        {
-            UnityEngine.Debug.LogError("[PGD.Jobs] Cannot schedule job outside of PGDJobSystemBase.OnUpdate()");
-            return;
-        }
-        
-        // 2. 构建查询（根据 Execute 参数和 [WithAll] 属性）
-        var query = world.Query<MoveSpeed, LocalTransform>();
-        // TODO: 处理 [WithAll], [WithNone] 等属性
-        
-        // 3. 提取数据到 NativeArray
-        var entities = query.Entities.ToArray();
-        int entityCount = entities.Length;
-        
-        if (entityCount == 0)
-            return;
-        
-        s_speedArray = new Unity.Collections.NativeArray<MoveSpeed>(
-            entityCount, 
-            Unity.Collections.Allocator.TempJob);
-        s_transformArray = new Unity.Collections.NativeArray<LocalTransform>(
-            entityCount, 
-            Unity.Collections.Allocator.TempJob);
-        
-        for (int i = 0; i < entityCount; i++)
-        {
-            s_speedArray[i] = entities[i].GetComponent<MoveSpeed>();
-            s_transformArray[i] = entities[i].GetComponent<LocalTransform>();
-        }
-        
-        // TODO: Phase 3 - 创建包装 Job 和调度
-    }
-}
-```
+**限制 / 后续工作**：
+- 尚未接入包装 Job、调度、写回（由 Phase 3 负责）。
+- 过滤属性（`WithAll`/`WithAny`/`WithNone`）仍待实现（Phase 4）。
+- 当前查询使用 `Query()` + `WithAllComponents`，后续可按需优化为特化调用。
 
-**生成逻辑**：
-1. 为每个 **`ref` 或 `in` 参数**生成 NativeArray
-2. 生成查询代码（根据参数类型）
-3. 生成数据提取循环
-
-**修改文件**：
-- `PGDJobSourceGenerator.cs` - `GenerateExtensionMethods()`
+**涉及文件**：
+- `PGDJobSourceGenerator.cs` - `GenerateExtensionMethods()` 及辅助方法。
 
 ---
 
@@ -531,4 +520,3 @@ job.ScheduleParallel();  // IDE 不报错！
 
 ### 后续待办
 - ⛳ 支持 `partial class XXX : PGDSystem`（非 `PGDJobSystemBase`）调用 `ScheduleParallel()`，为未使用 `PGDJobSystemBase` 的系统提供运行时上下文桥接。
-
