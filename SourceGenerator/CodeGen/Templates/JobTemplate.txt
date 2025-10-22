@@ -61,8 +61,7 @@ internal static class {{EXTENSIONS_NAME}}
     /// </summary>
     public static void ScheduleParallel(this ref {{JOB_NAME}} job, global::PGD.IQuery query)
     {
-        global::UnityEngine.Debug.Log("[PGD.Jobs] {{JOB_NAME}}.ScheduleParallel(query) - Source Generator stub");
-        // TODO: Use provided query instead of auto-generating one
+{{SCHEDULE_PARALLEL_WITH_QUERY_BODY}}
     }
 }
 

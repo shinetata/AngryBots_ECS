@@ -47,7 +47,8 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
                 .WithExecuteGeneratedSignature(GenerateExecuteGeneratedSignature())
                 .WithExecuteGeneratedCall(GenerateExecuteGeneratedCall())
                 .WithExtensionStaticFields(GenerateExtensionStaticFields())
-                .WithScheduleParallelBody(GenerateScheduleParallelBody());
+                .WithScheduleParallelBody(GenerateScheduleParallelBody())
+                .WithScheduleParallelWithQueryBody(GenerateScheduleParallelWithQueryBody());
 
             var templateData = builder.Build();
             return TemplateEngine.ApplyTemplate(templateData);
@@ -214,7 +215,7 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
         }
 
         /// <summary>
-        /// 生成 ScheduleParallel 方法体
+        /// 生成 ScheduleParallel 方法体（无参数版本，自动创建查询）
         /// </summary>
         private string GenerateScheduleParallelBody()
         {
@@ -253,6 +254,51 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
             GenerateWithAllFilter(sb, indent);
             GenerateWithAnyFilter(sb, indent);
             GenerateWithNoneFilter(sb, indent);
+
+            // 检查实体数量
+            sb.AppendLine($"{indent}var {Constants.FieldNames.EntityCount} = {Constants.FieldNames.Query}.{Constants.FieldNames.EntityCount_Property};");
+            sb.AppendLine($"{indent}if ({Constants.FieldNames.EntityCount} == 0)");
+            sb.AppendLine($"{indent}{{");
+            sb.AppendLine($"{indent}    return;");
+            sb.AppendLine($"{indent}}}");
+            sb.AppendLine();
+
+            // 分配 NativeArrays
+            GenerateNativeArrayAllocation(sb, indent);
+
+            // 提取组件数据
+            GenerateComponentExtraction(sb, indent);
+
+            // 生成调度逻辑
+            GenerateJobScheduling(sb, indent);
+
+            return sb.ToString().TrimEnd('\r', '\n');
+        }
+
+        /// <summary>
+        /// 生成 ScheduleParallel 方法体（带自定义查询版本）
+        /// </summary>
+        private string GenerateScheduleParallelWithQueryBody()
+        {
+            var sb = new StringBuilder();
+            var indent = TemplateEngine.Indent(2);
+
+            // 获取 World（用于注册回调）
+            sb.AppendLine($"{indent}var {Constants.FieldNames.World} = {Constants.TypeNames.PGDJobSystemBase}.{Constants.FieldNames.CurrentWorld};");
+            sb.AppendLine($"{indent}if ({Constants.FieldNames.World} == null)");
+            sb.AppendLine($"{indent}{{");
+            sb.AppendLine($"{indent}    {Constants.TypeNames.Debug}.{Constants.MethodNames.LogError}(\"{string.Format(Constants.LogMessages.ScheduleParallelError, _jobInfo.JobName)}\");");
+            sb.AppendLine($"{indent}    return;");
+            sb.AppendLine($"{indent}}}");
+            sb.AppendLine();
+
+            // 验证查询参数
+            sb.AppendLine($"{indent}if ({Constants.FieldNames.Query} == null)");
+            sb.AppendLine($"{indent}{{");
+            sb.AppendLine($"{indent}    {Constants.TypeNames.Debug}.{Constants.MethodNames.LogError}(\"{_jobInfo.JobName}.ScheduleParallel: query parameter is null\");");
+            sb.AppendLine($"{indent}    return;");
+            sb.AppendLine($"{indent}}}");
+            sb.AppendLine();
 
             // 检查实体数量
             sb.AppendLine($"{indent}var {Constants.FieldNames.EntityCount} = {Constants.FieldNames.Query}.{Constants.FieldNames.EntityCount_Property};");

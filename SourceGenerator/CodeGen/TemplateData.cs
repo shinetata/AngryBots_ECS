@@ -57,11 +57,16 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
         /// </summary>
         public string ExtensionStaticFields { get; set; } = string.Empty;
 
-        /// <summary>
-        /// ScheduleParallel 方法体
-        /// </summary>
-        public string ScheduleParallelBody { get; set; } = string.Empty;
-    }
+    /// <summary>
+    /// ScheduleParallel 方法体
+    /// </summary>
+    public string ScheduleParallelBody { get; set; } = string.Empty;
+
+    /// <summary>
+    /// ScheduleParallel(IQuery) 方法体
+    /// </summary>
+    public string ScheduleParallelWithQueryBody { get; set; } = string.Empty;
+}
 
     /// <summary>
     /// 构建 TemplateData 的辅助类
@@ -120,16 +125,22 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
             return this;
         }
 
-        public TemplateDataBuilder WithScheduleParallelBody(string body)
-        {
-            _data.ScheduleParallelBody = body;
-            return this;
-        }
-
-        public TemplateData Build()
-        {
-            return _data;
-        }
+    public TemplateDataBuilder WithScheduleParallelBody(string body)
+    {
+        _data.ScheduleParallelBody = body;
+        return this;
     }
+
+    public TemplateDataBuilder WithScheduleParallelWithQueryBody(string body)
+    {
+        _data.ScheduleParallelWithQueryBody = body;
+        return this;
+    }
+
+    public TemplateData Build()
+    {
+        return _data;
+    }
+}
 }
 

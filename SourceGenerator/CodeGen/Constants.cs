@@ -197,6 +197,7 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
             public const string EXECUTE_GENERATED_CALL = "{{EXECUTE_GENERATED_CALL}}";
             public const string EXTENSION_STATIC_FIELDS = "{{EXTENSION_STATIC_FIELDS}}";
             public const string SCHEDULE_PARALLEL_BODY = "{{SCHEDULE_PARALLEL_BODY}}";
+            public const string SCHEDULE_PARALLEL_WITH_QUERY_BODY = "{{SCHEDULE_PARALLEL_WITH_QUERY_BODY}}";
             public const string NAMESPACE_BEGIN = "{{NAMESPACE_BEGIN}}";
             public const string NAMESPACE_END = "{{NAMESPACE_END}}";
         }
