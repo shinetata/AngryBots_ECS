@@ -31,6 +31,7 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
             public const string IEntity = "global::PGD.IEntity";
             public const string IComponents = "global::PGD.IComponents";
             public const string IQuery = "global::PGD.IQuery";
+            public const string IECSWorld = "global::PGD.IECSWorld";
             public const string Allocator = "global::Unity.Collections.Allocator";
             public const string PGDJobSystemBase = "global::PGD.Jobs.PGDJobSystemBase";
             public const string Debug = "global::UnityEngine.Debug";
@@ -198,6 +199,7 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
             public const string EXECUTE_GENERATED_SIGNATURE = "{{EXECUTE_GENERATED_SIGNATURE}}";
             public const string EXECUTE_GENERATED_CALL = "{{EXECUTE_GENERATED_CALL}}";
             public const string EXTENSION_STATIC_FIELDS = "{{EXTENSION_STATIC_FIELDS}}";
+            public const string GET_OR_CREATE_QUERY_METHOD = "{{GET_OR_CREATE_QUERY_METHOD}}";
             public const string SCHEDULE_PARALLEL_BODY = "{{SCHEDULE_PARALLEL_BODY}}";
             public const string SCHEDULE_PARALLEL_WITH_QUERY_BODY = "{{SCHEDULE_PARALLEL_WITH_QUERY_BODY}}";
             public const string NAMESPACE_BEGIN = "{{NAMESPACE_BEGIN}}";

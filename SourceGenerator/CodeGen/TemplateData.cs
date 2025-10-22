@@ -57,6 +57,11 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
         /// </summary>
         public string ExtensionStaticFields { get; set; } = string.Empty;
 
+        /// <summary>
+        /// GetOrCreateQuery 方法定义
+        /// </summary>
+        public string GetOrCreateQueryMethod { get; set; } = string.Empty;
+
     /// <summary>
     /// ScheduleParallel 方法体
     /// </summary>
@@ -122,6 +127,12 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
         public TemplateDataBuilder WithExtensionStaticFields(string fields)
         {
             _data.ExtensionStaticFields = fields;
+            return this;
+        }
+
+        public TemplateDataBuilder WithGetOrCreateQueryMethod(string method)
+        {
+            _data.GetOrCreateQueryMethod = method;
             return this;
         }
 

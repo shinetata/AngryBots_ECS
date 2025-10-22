@@ -78,6 +78,7 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
             result = result.Replace(Constants.Placeholders.EXECUTE_GENERATED_SIGNATURE, data.ExecuteGeneratedSignature);
             result = result.Replace(Constants.Placeholders.EXECUTE_GENERATED_CALL, data.ExecuteGeneratedCall);
             result = result.Replace(Constants.Placeholders.EXTENSION_STATIC_FIELDS, data.ExtensionStaticFields);
+            result = result.Replace(Constants.Placeholders.GET_OR_CREATE_QUERY_METHOD, data.GetOrCreateQueryMethod);
             result = result.Replace(Constants.Placeholders.SCHEDULE_PARALLEL_BODY, data.ScheduleParallelBody);
             result = result.Replace(Constants.Placeholders.SCHEDULE_PARALLEL_WITH_QUERY_BODY, data.ScheduleParallelWithQueryBody);
 

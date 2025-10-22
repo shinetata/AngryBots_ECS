@@ -47,6 +47,7 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
                 .WithExecuteGeneratedSignature(GenerateExecuteGeneratedSignature())
                 .WithExecuteGeneratedCall(GenerateExecuteGeneratedCall())
                 .WithExtensionStaticFields(GenerateExtensionStaticFields())
+                .WithGetOrCreateQueryMethod(GenerateGetOrCreateQueryMethod())
                 .WithScheduleParallelBody(GenerateScheduleParallelBody())
                 .WithScheduleParallelWithQueryBody(GenerateScheduleParallelWithQueryBody());
 
@@ -192,10 +193,68 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
         /// </summary>
         private string GenerateExtensionStaticFields()
         {
-            // 不再使用静态字段！改用方法内局部变量
-            // 原因：多次调用 ScheduleParallel 时静态字段会被覆盖，导致数据竞争
-            // 解决：每次调用创建独立的局部 NativeArray，通过闭包捕获到回调中
-            return string.Empty;
+            var sb = new StringBuilder();
+            var indent = TemplateEngine.Indent(1);
+
+            // 生成 Query 缓存字段（使用 ThreadStatic 避免多线程问题）
+            sb.AppendLine($"{indent}/// <summary>");
+            sb.AppendLine($"{indent}/// Cached query for {_jobInfo.JobName}. Built lazily on first use.");
+            sb.AppendLine($"{indent}/// </summary>");
+            sb.AppendLine($"{indent}[global::System.ThreadStatic]");
+            sb.AppendLine($"{indent}private static {Constants.TypeNames.IQuery} s_cachedQuery;");
+            
+            return sb.ToString().TrimEnd('\r', '\n');
+        }
+
+        /// <summary>
+        /// 生成获取或创建 Query 的方法
+        /// </summary>
+        private string GenerateGetOrCreateQueryMethod()
+        {
+            var sb = new StringBuilder();
+            var indent = TemplateEngine.Indent(1);
+
+            sb.AppendLine($"{indent}/// <summary>");
+            sb.AppendLine($"{indent}/// Gets or creates the cached query for {_jobInfo.JobName}.");
+            sb.AppendLine($"{indent}/// </summary>");
+            sb.AppendLine($"{indent}private static {Constants.TypeNames.IQuery} GetOrCreateQuery({Constants.TypeNames.IECSWorld} {Constants.FieldNames.World})");
+            sb.AppendLine($"{indent}{{");
+            sb.AppendLine($"{indent}    if (s_cachedQuery != null)");
+            sb.AppendLine($"{indent}    {{");
+            sb.AppendLine($"{indent}        return s_cachedQuery;");
+            sb.AppendLine($"{indent}    }}");
+            sb.AppendLine();
+            sb.AppendLine($"{indent}    // Build query on first use");
+            sb.AppendLine($"{indent}    var {Constants.FieldNames.Query} = {Constants.FieldNames.World}.{Constants.MethodNames.Query}();");
+            sb.AppendLine();
+
+            // 添加必需的组件
+            if (_componentParameters.Count > 0)
+            {
+                sb.AppendLine($"{indent}    var {Constants.FieldNames.RequiredComponents} = new {Constants.TypeNames.IComponents}();");
+                var distinctComponentTypes = _componentParameters
+                    .Select(p => p.TypeFullName)
+                    .Distinct()
+                    .ToList();
+                foreach (var componentType in distinctComponentTypes)
+                {
+                    sb.AppendLine($"{indent}    {Constants.FieldNames.RequiredComponents}.{Constants.MethodNames.Add}<{componentType}>();");
+                }
+                sb.AppendLine($"{indent}    {Constants.FieldNames.Query} = {Constants.FieldNames.Query}.{Constants.MethodNames.WithAllComponents}({Constants.FieldNames.RequiredComponents});");
+                sb.AppendLine();
+            }
+
+            // Apply filters
+            GenerateWithAllFilter(sb, indent + "    ");
+            GenerateWithAnyFilter(sb, indent + "    ");
+            GenerateWithNoneFilter(sb, indent + "    ");
+
+            sb.AppendLine($"{indent}    // Cache the query for future use");
+            sb.AppendLine($"{indent}    s_cachedQuery = {Constants.FieldNames.Query};");
+            sb.AppendLine($"{indent}    return s_cachedQuery;");
+            sb.AppendLine($"{indent}}}");
+
+            return sb.ToString();
         }
 
         /// <summary>
@@ -215,29 +274,10 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
             sb.AppendLine($"{indent}}}");
             sb.AppendLine();
 
-            // 创建查询
-            sb.AppendLine($"{indent}var {Constants.FieldNames.Query} = {Constants.FieldNames.World}.{Constants.MethodNames.Query}();");
-
-            // 添加必需的组件
-            if (_componentParameters.Count > 0)
-            {
-                sb.AppendLine($"{indent}var {Constants.FieldNames.RequiredComponents} = new {Constants.TypeNames.IComponents}();");
-                var distinctComponentTypes = _componentParameters
-                    .Select(p => p.TypeFullName)
-                    .Distinct()
-                    .ToList();
-                foreach (var componentType in distinctComponentTypes)
-                {
-                    sb.AppendLine($"{indent}{Constants.FieldNames.RequiredComponents}.{Constants.MethodNames.Add}<{componentType}>();");
-                }
-                sb.AppendLine($"{indent}{Constants.FieldNames.Query} = {Constants.FieldNames.Query}.{Constants.MethodNames.WithAllComponents}({Constants.FieldNames.RequiredComponents});");
-                sb.AppendLine();
-            }
-
-            // Apply filters
-            GenerateWithAllFilter(sb, indent);
-            GenerateWithAnyFilter(sb, indent);
-            GenerateWithNoneFilter(sb, indent);
+            // 使用缓存的查询（首次调用时构建并缓存）
+            sb.AppendLine($"{indent}// Get or create cached query (built once, reused every frame)");
+            sb.AppendLine($"{indent}var {Constants.FieldNames.Query} = GetOrCreateQuery({Constants.FieldNames.World});");
+            sb.AppendLine();
 
             // 检查实体数量
             sb.AppendLine($"{indent}var {Constants.FieldNames.EntityCount} = {Constants.FieldNames.Query}.{Constants.FieldNames.EntityCount_Property};");
