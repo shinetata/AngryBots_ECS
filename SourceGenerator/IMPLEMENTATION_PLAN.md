@@ -290,7 +290,7 @@ public static void ScheduleParallel(this ref MoveForwardJob job)
 
 ---
 
-### Phase 4：处理查询过滤属性 ⏳
+### Phase 4：处理查询过滤属性 ✅
 
 **目标**：支持 `[WithAll]`, `[WithAny]`, `[WithNone]` 属性
 
@@ -304,20 +304,41 @@ public partial struct MyJob : IJobParallel
 }
 ```
 
-**需要生成的查询代码**：
+**生成的查询代码**：
 ```csharp
-var query = world.Query<Transform>();
-// TODO: 应用 WithAll 过滤
-// query = query.WithAll<MoveForward, EnemyTag>();
-// query = query.WithNone<DisabledTag>();
+var query = world.Query();
+
+// Execute 参数组件
+var requiredComponents = new global::PGD.IComponents();
+requiredComponents.Add<global::Transform>();
+query = query.WithAllComponents(requiredComponents);
+
+// WithAll 过滤
+var withAllComponents = new global::PGD.IComponents();
+withAllComponents.Add<global::MoveForward>();
+withAllComponents.Add<global::EnemyTag>();
+query = query.WithAllComponents(withAllComponents);
+
+// WithNone 过滤
+var withNoneComponents = new global::PGD.IComponents();
+withNoneComponents.Add<global::DisabledTag>();
+query = query.WithoutAnyComponents(withNoneComponents);
 ```
 
-**当前问题**：需要了解 PGD 的查询 API
+**已完成的修改**：
+- ✅ `Analyzer/JobAnalyzer.cs` - 已实现属性提取（Phase 1 时完成）
+- ✅ `Models/JobInfo.cs` - 已添加过滤类型列表（Phase 1 时完成）
+- ✅ `PGDJobSourceGenerator.cs` - 新增三个辅助方法生成过滤代码
+  - `GenerateWithAllFilter()` - 生成 WithAll 过滤
+  - `GenerateWithAnyFilter()` - 生成 WithAny 过滤
+  - `GenerateWithNoneFilter()` - 生成 WithNone 过滤
 
-**修改文件**：
-- `Analyzer/JobAnalyzer.cs` - 提取属性信息
-- `Models/JobInfo.cs` - 存储过滤信息
-- `PGDJobSourceGenerator.cs` - 生成过滤代码
+**实现细节**：
+- `[WithAll]` → `query.WithAllComponents()`
+- `[WithAny]` → `query.WithAnyComponents()`
+- `[WithNone]` → `query.WithoutAnyComponents()`
+
+**完成时间**：2025-10-22
 
 ---
 
@@ -526,15 +547,14 @@ job.ScheduleParallel();  // IDE 不报错！
 - ✅ 基础架构完成（Phase 0）
 - ✅ 参数分析完成（Phase 1）
 - ✅ 查询和数据提取完成（Phase 2）
-- ✅ **包装 Job 和调度逻辑完成（Phase 3）**
-- ⏳ 查询过滤属性待实现（Phase 4）
+- ✅ 包装 Job 和调度逻辑完成（Phase 3）
+- ✅ **查询过滤属性已实现（Phase 4）**
 - ⏳ 优化和错误处理待实现（Phase 5）
 
 **下一步**：
-1. ✅ Phase 1-3 已完成
-2. ⏳ 实现 Phase 4：查询过滤属性（`[WithAll]`, `[WithAny]`, `[WithNone]`）
-3. ⏳ 实现 Phase 5：优化和错误处理
-4. 📝 在 Unity 中完整端到端测试
+1. ✅ Phase 1-4 已完成
+2. ⏳ 实现 Phase 5：优化和错误处理
+3. 📝 在 Unity 中完整端到端测试
 
 **目标已达成**：开发者只需要把 `IJobEntity` 改成 `IJobParallel`！✅
 
