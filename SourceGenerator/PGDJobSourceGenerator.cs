@@ -352,15 +352,34 @@ namespace PGD.Jobs.SourceGenerator
             if (writableParameters.Count > 0)
             {
                 builder.AppendComment("Write back modified components to entities");
-                builder.AppendLine("for (int i = 0; i < entityCount; i++)");
+                builder.AppendLine("int index = 0;");
+                builder.AppendLine("foreach (var entity in query.Entities)");
                 builder.OpenBrace();
-                builder.AppendLine("var entity = entities[i];");
+                
                 foreach (var parameter in writableParameters)
                 {
                     var fieldName = fieldNames[parameter];
-                    builder.AppendLine($"ref var {parameter.Name} = ref entity.GetComponent<{parameter.TypeFullName}>();");
-                    builder.AppendLine($"{parameter.Name} = {fieldName}[i];");
+                    
+                    // 如果检测到具体被修改的成员，只写回这些成员
+                    if (parameter.ModifiedMembers.Count > 0)
+                    {
+                        builder.AppendComment($"Write back modified members of {parameter.TypeName}");
+                        builder.AppendLine($"ref var {parameter.Name} = ref entity.GetComponent<{parameter.TypeFullName}>();");
+                        foreach (var memberName in parameter.ModifiedMembers)
+                        {
+                            builder.AppendLine($"{parameter.Name}.{memberName} = {fieldName}[index].{memberName};");
+                        }
+                    }
+                    // 否则写回整个组件（兜底方案）
+                    else if (parameter.IsFullyModified)
+                    {
+                        builder.AppendComment($"Write back entire {parameter.TypeName} (full component modification detected)");
+                        builder.AppendLine($"ref var {parameter.Name} = ref entity.GetComponent<{parameter.TypeFullName}>();");
+                        builder.AppendLine($"{parameter.Name} = {fieldName}[index];");
+                    }
                 }
+                
+                builder.AppendLine("index++;");
                 builder.CloseBrace();
             }
             else
@@ -448,8 +467,7 @@ namespace PGD.Jobs.SourceGenerator
                 builder.AppendLine();
             }
 
-            builder.AppendLine("var entities = query.Entities.ToEntitySet();");
-            builder.AppendLine("var entityCount = entities.Count;");
+            builder.AppendLine("var entityCount = query.EntityCount;");
             builder.AppendLine("if (entityCount == 0)");
             builder.OpenBrace();
             builder.AppendLine("return;");
@@ -478,20 +496,23 @@ namespace PGD.Jobs.SourceGenerator
             if (componentParameters.Count > 0 || hasEntityParameter)
             {
                 builder.AppendLine();
-                builder.AppendLine("for (int i = 0; i < entityCount; i++)");
+                builder.AppendComment("Extract component data using foreach for better performance");
+                builder.AppendLine("int index = 0;");
+                builder.AppendLine("foreach (var entity in query.Entities)");
                 builder.OpenBrace();
-                builder.AppendLine("var entity = entities[i];");
                 
                 if (hasEntityParameter)
                 {
-                    builder.AppendLine("s_entityArray[i] = entity;");
+                    builder.AppendLine("s_entityArray[index] = entity;");
                 }
                 
                 foreach (var parameter in componentParameters)
                 {
                     var fieldName = fieldNames[parameter];
-                    builder.AppendLine($"{fieldName}[i] = entity.GetComponent<{parameter.TypeFullName}>();");
+                    builder.AppendLine($"{fieldName}[index] = entity.GetComponent<{parameter.TypeFullName}>();");
                 }
+                
+                builder.AppendLine("index++;");
                 builder.CloseBrace();
                 builder.AppendLine();
             }

@@ -123,6 +123,17 @@ namespace PGD.Jobs.SourceGenerator.Models
         /// 是否是可写组件参数（ref 组件）
         /// </summary>
         public bool IsWritableComponent => IsComponent && RefKind == RefKind.Ref;
+
+        /// <summary>
+        /// 在 Execute 方法中被修改的成员名称列表（字段或属性）
+        /// 只对 ref 组件参数有效
+        /// </summary>
+        public List<string> ModifiedMembers { get; set; } = new List<string>();
+
+        /// <summary>
+        /// 是否整个组件都被修改（检测不到具体成员修改时）
+        /// </summary>
+        public bool IsFullyModified { get; set; }
     }
 }
 

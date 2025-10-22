@@ -1,8 +1,10 @@
 using System;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using PGD.Jobs.SourceGenerator.Models;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace PGD.Jobs.SourceGenerator.Analyzer
 {
@@ -35,6 +37,9 @@ namespace PGD.Jobs.SourceGenerator.Analyzer
 
             // 分析 Execute 方法参数
             AnalyzeParameters(executeMethod, jobInfo);
+
+            // 分析 Execute 方法体，找出被修改的成员
+            AnalyzeExecuteMethodBody(executeMethod, structSyntax, jobInfo);
 
             // 分析特性
             AnalyzeAttributes(jobSymbol, jobInfo);
@@ -100,6 +105,67 @@ namespace PGD.Jobs.SourceGenerator.Analyzer
                 return false;
 
             return string.Equals(parameter.Name, "entityIndex", StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// 分析 Execute 方法体，找出 ref 参数中被修改的成员
+        /// </summary>
+        private static void AnalyzeExecuteMethodBody(
+            IMethodSymbol executeMethod, 
+            StructDeclarationSyntax structSyntax, 
+            JobInfo jobInfo)
+        {
+            // 查找 Execute 方法的语法节点
+            var executeSyntax = structSyntax.Members
+                .OfType<MethodDeclarationSyntax>()
+                .FirstOrDefault(m => m.Identifier.Text == "Execute");
+
+            if (executeSyntax?.Body == null)
+                return;
+
+            // 对每个 ref 参数，查找其成员被修改的情况
+            foreach (var parameter in jobInfo.Parameters.Where(p => p.RequiresWriteBack))
+            {
+                var modifiedMembers = FindModifiedMembers(executeSyntax.Body, parameter.Name);
+                parameter.ModifiedMembers.AddRange(modifiedMembers);
+                
+                // 如果没有检测到具体成员修改，标记为完全修改
+                if (parameter.ModifiedMembers.Count == 0)
+                {
+                    parameter.IsFullyModified = true;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 查找参数的哪些成员被修改了
+        /// </summary>
+        private static HashSet<string> FindModifiedMembers(BlockSyntax methodBody, string parameterName)
+        {
+            var modifiedMembers = new HashSet<string>(StringComparer.Ordinal);
+
+            // 遍历方法体中的所有赋值表达式
+            var assignments = methodBody.DescendantNodes()
+                .OfType<AssignmentExpressionSyntax>()
+                .Where(a => a.Kind() == SyntaxKind.SimpleAssignmentExpression);
+
+            foreach (var assignment in assignments)
+            {
+                // 检查赋值的左侧是否是参数的成员访问
+                if (assignment.Left is MemberAccessExpressionSyntax memberAccess)
+                {
+                    // 检查是否是对指定参数的成员访问
+                    if (memberAccess.Expression is IdentifierNameSyntax identifier &&
+                        identifier.Identifier.Text == parameterName)
+                    {
+                        // 记录被修改的成员名
+                        var memberName = memberAccess.Name.Identifier.Text;
+                        modifiedMembers.Add(memberName);
+                    }
+                }
+            }
+
+            return modifiedMembers;
         }
 
         /// <summary>
