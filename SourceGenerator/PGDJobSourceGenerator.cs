@@ -140,6 +140,14 @@ namespace PGD.Jobs.SourceGenerator
                 builder.OpenBrace();
             }
 
+            // 生成包装 Job 结构体
+            GenerateWrapperJob(builder, jobInfo);
+            builder.AppendLine();
+
+            // 生成 ExecuteGenerated 适配方法
+            GenerateExecuteGeneratedMethod(builder, jobInfo);
+            builder.AppendLine();
+
             // 生成扩展方法类
             GenerateExtensionMethods(builder, jobInfo);
 
@@ -149,6 +157,237 @@ namespace PGD.Jobs.SourceGenerator
             }
 
             return builder.ToString();
+        }
+
+        private void GenerateWrapperJob(CodeBuilder builder, JobInfo jobInfo)
+        {
+            var componentParameters = jobInfo.Parameters.Where(p => p.IsComponent).ToList();
+            var fieldNames = BuildNativeArrayFieldNames(componentParameters);
+            var hasEntityParameter = jobInfo.Parameters.Any(p => p.IsEntity);
+            var hasEntityIndexParameter = jobInfo.Parameters.Any(p => p.IsEntityIndex);
+
+            // 生成包装 Job 结构体
+            builder.AppendXmlComment($"Wrapper job for {jobInfo.JobName} that implements IJobParallelFor");
+            builder.AppendLine("[global::Unity.Burst.BurstCompile]");
+            builder.AppendLine($"internal struct {jobInfo.JobName}_Wrapper : global::Unity.Jobs.IJobParallelFor");
+            builder.OpenBrace();
+
+            // 添加原始 Job 字段
+            builder.AppendXmlComment("The original job to execute");
+            builder.AppendLine($"public {jobInfo.JobName} innerJob;");
+            builder.AppendLine();
+
+            // 添加组件 NativeArray 字段
+            if (componentParameters.Count > 0)
+            {
+                builder.AppendXmlComment("Component data arrays");
+                foreach (var parameter in componentParameters)
+                {
+                    var fieldName = fieldNames[parameter];
+                    if (parameter.IsReadOnly)
+                    {
+                        builder.AppendLine("[global::Unity.Collections.ReadOnly]");
+                    }
+                    builder.AppendLine($"public global::Unity.Collections.NativeArray<{parameter.TypeFullName}> {fieldName};");
+                }
+                builder.AppendLine();
+            }
+
+            // 添加实体数组字段（如果需要）
+            if (hasEntityParameter)
+            {
+                builder.AppendXmlComment("Entity references array");
+                builder.AppendLine("[global::Unity.Collections.ReadOnly]");
+                builder.AppendLine("public global::Unity.Collections.NativeArray<global::PGD.IEntity> s_entityArray;");
+                builder.AppendLine();
+            }
+
+            // 生成 Execute 方法
+            builder.AppendXmlComment("Execute the job for a single entity index");
+            builder.AppendLine("public void Execute(int index)");
+            builder.OpenBrace();
+
+            // 从 NativeArray 中提取参数
+            foreach (var parameter in componentParameters)
+            {
+                var fieldName = fieldNames[parameter];
+                var localVarName = parameter.Name;
+                builder.AppendLine($"var {localVarName} = {fieldName}[index];");
+            }
+
+            if (hasEntityParameter)
+            {
+                var entityParam = jobInfo.Parameters.First(p => p.IsEntity);
+                builder.AppendLine($"var {entityParam.Name} = s_entityArray[index];");
+            }
+
+            builder.AppendLine();
+
+            // 调用原始 Execute 方法
+            builder.AppendComment("Call the original Execute method");
+            var executeArgs = BuildExecuteCallArguments(jobInfo);
+            builder.AppendLine($"innerJob.ExecuteGenerated({executeArgs});");
+            builder.AppendLine();
+
+            // 写回可写参数
+            var writableParameters = componentParameters.Where(p => p.RequiresWriteBack).ToList();
+            if (writableParameters.Count > 0)
+            {
+                builder.AppendComment("Write back modified components");
+                foreach (var parameter in writableParameters)
+                {
+                    var fieldName = fieldNames[parameter];
+                    builder.AppendLine($"{fieldName}[index] = {parameter.Name};");
+                }
+            }
+
+            builder.CloseBrace(); // Execute
+            builder.CloseBrace(); // Wrapper struct
+        }
+
+        private void GenerateExecuteGeneratedMethod(CodeBuilder builder, JobInfo jobInfo)
+        {
+            // 生成适配方法
+            builder.AppendXmlComment($"Generated adapter method for {jobInfo.JobName}.Execute");
+            builder.AppendLine($"partial struct {jobInfo.JobName}");
+            builder.OpenBrace();
+
+            builder.AppendLine("[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
+            var methodSignature = BuildExecuteGeneratedSignature(jobInfo);
+            builder.AppendLine($"internal void ExecuteGenerated({methodSignature})");
+            builder.OpenBrace();
+
+            var executeArgs = BuildExecuteCallArguments(jobInfo);
+            builder.AppendLine($"Execute({executeArgs});");
+
+            builder.CloseBrace(); // ExecuteGenerated
+            builder.CloseBrace(); // partial struct
+        }
+
+        private string BuildExecuteGeneratedSignature(JobInfo jobInfo)
+        {
+            var parts = new List<string>();
+            foreach (var parameter in jobInfo.Parameters)
+            {
+                var refModifier = parameter.RefKind switch
+                {
+                    RefKind.Ref => "ref ",
+                    RefKind.In => "in ",
+                    RefKind.Out => "out ",
+                    _ => ""
+                };
+                parts.Add($"{refModifier}{parameter.TypeFullName} {parameter.Name}");
+            }
+            return string.Join(", ", parts);
+        }
+
+        private string BuildExecuteCallArguments(JobInfo jobInfo)
+        {
+            var parts = new List<string>();
+            foreach (var parameter in jobInfo.Parameters)
+            {
+                var refModifier = parameter.RefKind switch
+                {
+                    RefKind.Ref => "ref ",
+                    RefKind.In => "in ",
+                    RefKind.Out => "out ",
+                    _ => ""
+                };
+
+                if (parameter.IsEntityIndex)
+                {
+                    // 对于 entityIndex 参数，直接传递 index
+                    parts.Add($"{refModifier}index");
+                }
+                else
+                {
+                    parts.Add($"{refModifier}{parameter.Name}");
+                }
+            }
+            return string.Join(", ", parts);
+        }
+
+        private void GenerateJobScheduling(
+            CodeBuilder builder, 
+            JobInfo jobInfo, 
+            Dictionary<ParameterInfo, string> fieldNames, 
+            List<ParameterInfo> componentParameters)
+        {
+            var hasEntityParameter = jobInfo.Parameters.Any(p => p.IsEntity);
+            var writableParameters = componentParameters.Where(p => p.RequiresWriteBack).ToList();
+
+            builder.AppendComment("4. Create wrapper job");
+            builder.AppendLine($"var wrapper = new {jobInfo.JobName}_Wrapper");
+            builder.OpenBrace();
+            builder.AppendLine("innerJob = job,");
+            
+            foreach (var parameter in componentParameters)
+            {
+                var fieldName = fieldNames[parameter];
+                builder.AppendLine($"{fieldName} = {fieldName},");
+            }
+
+            if (hasEntityParameter)
+            {
+                builder.AppendLine("s_entityArray = s_entityArray,");
+            }
+
+            builder.CloseBrace(";");
+            builder.AppendLine();
+
+            builder.AppendComment("5. Schedule the job");
+            builder.AppendLine("var dependency = global::PGD.Jobs.PGDJobSystemBase.CurrentDependency;");
+            builder.AppendLine("var handle = wrapper.Schedule(entityCount, 64, dependency);");
+            builder.AppendLine();
+
+            builder.AppendComment("6. Register callbacks for data writeback and cleanup");
+            builder.AppendLine("global::PGD.Jobs.PGDJobSystemBase.RegisterJob(");
+            builder.Indent();
+            builder.AppendLine("handle,");
+            
+            // onComplete 回调
+            builder.AppendLine("onComplete: () =>");
+            builder.OpenBrace();
+            
+            if (writableParameters.Count > 0)
+            {
+                builder.AppendComment("Write back modified components to entities");
+                builder.AppendLine("for (int i = 0; i < entityCount; i++)");
+                builder.OpenBrace();
+                builder.AppendLine("var entity = entities[i];");
+                foreach (var parameter in writableParameters)
+                {
+                    var fieldName = fieldNames[parameter];
+                    builder.AppendLine($"ref var {parameter.Name} = ref entity.GetComponent<{parameter.TypeFullName}>();");
+                    builder.AppendLine($"{parameter.Name} = {fieldName}[i];");
+                }
+                builder.CloseBrace();
+            }
+            else
+            {
+                builder.AppendComment("No writable components, nothing to write back");
+            }
+            
+            builder.CloseBrace(",");
+            
+            // onDispose 回调
+            builder.AppendLine("onDispose: () =>");
+            builder.OpenBrace();
+            builder.AppendComment("Dispose NativeArrays");
+            
+            foreach (var parameter in componentParameters)
+            {
+                var fieldName = fieldNames[parameter];
+                builder.AppendLine($"if ({fieldName}.IsCreated) {fieldName}.Dispose();");
+            }
+
+            if (hasEntityParameter)
+            {
+                builder.AppendLine("if (s_entityArray.IsCreated) s_entityArray.Dispose();");
+            }
+            
+            builder.CloseBrace(");");
+            builder.Unindent();
         }
 
         private void GenerateExtensionMethods(CodeBuilder builder, JobInfo jobInfo)
@@ -161,6 +400,8 @@ namespace PGD.Jobs.SourceGenerator
 
             var componentParameters = jobInfo.Parameters.Where(p => p.IsComponent).ToList();
             var fieldNames = BuildNativeArrayFieldNames(componentParameters);
+            var hasEntityParameter = jobInfo.Parameters.Any(p => p.IsEntity);
+
             if (componentParameters.Count > 0)
             {
                 foreach (var parameter in componentParameters)
@@ -168,6 +409,12 @@ namespace PGD.Jobs.SourceGenerator
                     var fieldName = fieldNames[parameter];
                     builder.AppendLine($"private static NativeArray<{parameter.TypeFullName}> {fieldName};");
                 }
+                builder.AppendLine();
+            }
+
+            if (hasEntityParameter)
+            {
+                builder.AppendLine("private static NativeArray<global::PGD.IEntity> s_entityArray;");
                 builder.AppendLine();
             }
 
@@ -219,12 +466,27 @@ namespace PGD.Jobs.SourceGenerator
                 builder.AppendLine($"{fieldName} = new global::Unity.Collections.NativeArray<{parameter.TypeFullName}>(entityCount, global::Unity.Collections.Allocator.TempJob);");
             }
 
-            if (componentParameters.Count > 0)
+            if (hasEntityParameter)
+            {
+                builder.AppendLine("if (s_entityArray.IsCreated)");
+                builder.OpenBrace();
+                builder.AppendLine("s_entityArray.Dispose();");
+                builder.CloseBrace();
+                builder.AppendLine("s_entityArray = new global::Unity.Collections.NativeArray<global::PGD.IEntity>(entityCount, global::Unity.Collections.Allocator.TempJob);");
+            }
+
+            if (componentParameters.Count > 0 || hasEntityParameter)
             {
                 builder.AppendLine();
                 builder.AppendLine("for (int i = 0; i < entityCount; i++)");
                 builder.OpenBrace();
                 builder.AppendLine("var entity = entities[i];");
+                
+                if (hasEntityParameter)
+                {
+                    builder.AppendLine("s_entityArray[i] = entity;");
+                }
+                
                 foreach (var parameter in componentParameters)
                 {
                     var fieldName = fieldNames[parameter];
@@ -234,7 +496,9 @@ namespace PGD.Jobs.SourceGenerator
                 builder.AppendLine();
             }
 
-            builder.AppendComment("TODO: Phase 3 will schedule the job and register callbacks.");
+            // 生成调度逻辑
+            GenerateJobScheduling(builder, jobInfo, fieldNames, componentParameters);
+
             builder.CloseBrace();
             builder.AppendLine();
 

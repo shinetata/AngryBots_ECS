@@ -10,7 +10,7 @@ using PGD;
 using PGD.Jobs;
 
 [BurstCompile]
-partial class MoveForwardSystem : PGDSystem
+partial class MoveForwardSystem : PGDJobSystemBase
 {
     [BurstCompile]
     protected override void OnUpdate()

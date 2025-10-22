@@ -73,11 +73,34 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
         /// <summary>
         /// 减少缩进并添加右大括号
         /// </summary>
-        public CodeBuilder CloseBrace()
+        public CodeBuilder CloseBrace(string? suffix = null)
         {
             DecreaseIndent();
-            AppendLine("}");
+            if (string.IsNullOrEmpty(suffix))
+            {
+                AppendLine("}");
+            }
+            else
+            {
+                AppendLine("}" + suffix);
+            }
             return this;
+        }
+
+        /// <summary>
+        /// 增加缩进（别名）
+        /// </summary>
+        public CodeBuilder Indent()
+        {
+            return IncreaseIndent();
+        }
+
+        /// <summary>
+        /// 减少缩进（别名）
+        /// </summary>
+        public CodeBuilder Unindent()
+        {
+            return DecreaseIndent();
         }
 
         /// <summary>

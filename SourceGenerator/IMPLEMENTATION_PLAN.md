@@ -35,7 +35,11 @@
 - ✅ 生成扩展方法类（包含查询与数据提取逻辑）
 - ✅ 编译成功（Roslyn 3.8.0）
 
-**当前生成的代码**（Phase 2 输出）：
+**Phase 3 已完成！完整生成代码见 `PHASE3_EXAMPLE_OUTPUT.md`**
+
+---
+
+**旧版 Phase 2 输出**（已被 Phase 3 替换）：
 ```csharp
 internal static class MoveForwardJobExtensions
 {
@@ -110,7 +114,8 @@ public partial struct MoveForwardJob : IJobParallel  // ← 只改这里
 - ✅ 代码可以编译
 - ✅ IDE 不报错
 - ✅ Source Generator 会自动生成查询与数据提取代码
-- ⚠️ 尚未生成包装 Job、调度与写回逻辑（Phase 3 待完成）
+- ✅ **已生成包装 Job、调度与写回逻辑（Phase 3 已完成！）**
+- ⏳ 尚未实现过滤属性（Phase 4 待完成）
 
 ---
 
@@ -178,7 +183,7 @@ public partial struct MoveForwardJob : IJobParallel  // ← 只改这里
 
 ---
 
-### Phase 3：生成包装 Job 和调度逻辑 ⏳
+### Phase 3：生成包装 Job 和调度逻辑 ✅
 
 **目标**：创建 `IJobParallelFor` 包装 Job 并调度
 
@@ -268,8 +273,20 @@ public static void ScheduleParallel(this ref MoveForwardJob job)
 ```
 
 **修改文件**：
-- `PGDJobSourceGenerator.cs` - 新增 `GenerateWrapperJob()`
-- `PGDJobSourceGenerator.cs` - `GenerateExtensionMethods()` 中添加调度逻辑
+- ✅ `PGDJobSourceGenerator.cs` - 新增 `GenerateWrapperJob()`
+- ✅ `PGDJobSourceGenerator.cs` - 新增 `GenerateExecuteGeneratedMethod()`
+- ✅ `PGDJobSourceGenerator.cs` - 新增 `GenerateJobScheduling()`
+- ✅ `PGDJobSourceGenerator.cs` - `GenerateExtensionMethods()` 中添加调度逻辑
+- ✅ `CodeGen/CodeBuilder.cs` - 添加 `CloseBrace(suffix)`, `Indent()`, `Unindent()` 方法
+
+**生成的代码包括**：
+1. ✅ 包装 Job 结构体（实现 `IJobParallelFor`）
+2. ✅ `ExecuteGenerated` 适配方法
+3. ✅ 完整的调度逻辑
+4. ✅ 数据写回回调（`onComplete`）
+5. ✅ 内存清理回调（`onDispose`）
+
+**参考示例**：见 `PHASE3_EXAMPLE_OUTPUT.md`
 
 ---
 
@@ -506,15 +523,18 @@ job.ScheduleParallel();  // IDE 不报错！
 ## 总结
 
 **当前状态**：
-- ✅ 基础架构完成
-- ✅ 开发者可以编写代码不报错
-- ✅ Source Generator 可以生成 stub 代码
-- ⏳ 需要实现完整的代码生成逻辑
+- ✅ 基础架构完成（Phase 0）
+- ✅ 参数分析完成（Phase 1）
+- ✅ 查询和数据提取完成（Phase 2）
+- ✅ **包装 Job 和调度逻辑完成（Phase 3）**
+- ⏳ 查询过滤属性待实现（Phase 4）
+- ⏳ 优化和错误处理待实现（Phase 5）
 
 **下一步**：
-1. 在 Unity 中测试当前架构
-2. 逐步实现 Phase 1-5
-3. 完整端到端测试
+1. ✅ Phase 1-3 已完成
+2. ⏳ 实现 Phase 4：查询过滤属性（`[WithAll]`, `[WithAny]`, `[WithNone]`）
+3. ⏳ 实现 Phase 5：优化和错误处理
+4. 📝 在 Unity 中完整端到端测试
 
 **目标已达成**：开发者只需要把 `IJobEntity` 改成 `IJobParallel`！✅
 
