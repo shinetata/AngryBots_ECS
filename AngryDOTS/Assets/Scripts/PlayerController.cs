@@ -8,6 +8,8 @@
 	* - The initialization in the CreateEntity() method
 	* - The entity updates in the UpdateEntity() method
  */
+
+using System;
 using Unity.Entities;
 using Unity.Transforms;
 using UnityEngine;
@@ -43,6 +45,11 @@ public class PlayerController : MonoBehaviour
         CreateEntity();
     }
 
+    private void Update()
+    {
+        PGDGameContext.UpdateSystem();
+    }
+
     void FixedUpdate()
     {
         if (isDead)
@@ -61,7 +68,6 @@ public class PlayerController : MonoBehaviour
         TurnThePlayer();
         AnimateThePlayer(desiredDirection);
         UpdateEntity();
-        PGDGameContext.UpdateSystem();
     }
 
     void MoveThePlayer(Vector3 desiredDirection)

@@ -180,6 +180,63 @@ public static class PGDGameContext
     {
         return GetWorld().Query<T1, T2, T3, T4, T5, T6, T7>().WithoutAnyTags(ITags.Get<PrefabTag>());
     }
+
+    public static IQuery BuildHybridQuery(this IECSWorld world)
+    {
+        return world.Query().WithoutAnyTags(ITags.Get<PrefabTag>());
+    }
+    
+    public static IQuery<T1> BuildHybridQuery<T1>(this IECSWorld world)  
+        where T1 : struct, IComponent
+    {
+        return world.Query<T1>().WithoutAnyTags(ITags.Get<PrefabTag>());
+    }
+
+    public static IQuery<T1, T2> BuildHybridQuery<T1, T2>(this IECSWorld world)  
+        where T1 : struct, IComponent 
+        where T2 : struct, IComponent
+    {
+        return world.Query<T1, T2>().WithoutAnyTags(ITags.Get<PrefabTag>());
+    }
+    
+    public static IQuery<T1, T2, T3> BuildHybridQuery<T1, T2, T3>(this IECSWorld world)  
+        where T1 : struct, IComponent 
+        where T2 : struct, IComponent 
+        where T3 : struct, IComponent
+    {
+        return world.Query<T1, T2, T3>().WithoutAnyTags(ITags.Get<PrefabTag>());
+    }
+    
+    
+    public static IQuery<T1, T2, T3, T4> BuildHybridQuery<T1, T2, T3, T4>(this IECSWorld world)  
+        where T1 : struct, IComponent 
+        where T2 : struct, IComponent 
+        where T3 : struct, IComponent 
+        where T4 : struct, IComponent
+    {
+        return world.Query<T1, T2, T3, T4>().WithoutAnyTags(ITags.Get<PrefabTag>());
+    }
+
+    public static IQuery<T1, T2, T3, T4, T5> BuildHybridQuery<T1, T2, T3, T4, T5>(this IECSWorld world)  
+        where T1 : struct, IComponent
+        where T2 : struct, IComponent
+        where T3 : struct, IComponent
+        where T4 : struct, IComponent
+        where T5 : struct, IComponent
+    {
+        return world.Query<T1, T2, T3, T4, T5>().WithoutAnyTags(ITags.Get<PrefabTag>());
+    }
+
+    public static IQuery<T1, T2, T3, T4, T5, T6> BuildHybridQuery<T1, T2, T3, T4, T5, T6>(this IECSWorld world)  
+        where T1 : struct, IComponent
+        where T2 : struct, IComponent
+        where T3 : struct, IComponent
+        where T4 : struct, IComponent
+        where T5 : struct, IComponent
+        where T6 : struct, IComponent
+    {
+        return world.Query<T1, T2, T3, T4, T5, T6>().WithoutAnyTags(ITags.Get<PrefabTag>());
+    }
     
     public static NativeArray<T> ToComponentDataArray<T>(this IQuery<T> query, Allocator allocator)
         where T : struct, IComponent

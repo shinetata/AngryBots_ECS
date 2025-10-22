@@ -45,20 +45,38 @@ namespace PGD.Jobs
         public static JobHandle CurrentDependency => s_currentSystem?.DependencyHandle ?? default;
 
         /// <summary>
-        /// 注册一个 Job 句柄，并添加完成后的回调
+        /// 立即更新依赖链（用于多个 Job 顺序调度）
         /// </summary>
-        public static void RegisterJob(JobHandle handle, System.Action onComplete = null, System.Action onDispose = null)
+        public static void UpdateDependency(JobHandle handle)
         {
             if (s_currentSystem == null)
-                throw new InvalidOperationException("Cannot register job outside of OnUpdate().");
+                throw new InvalidOperationException("Cannot update dependency outside of OnUpdate().");
 
             s_currentSystem.CombineDependency(handle);
+        }
+
+        /// <summary>
+        /// 注册 Job 完成后的回调
+        /// </summary>
+        public static void RegisterCallbacks(System.Action onComplete = null, System.Action onDispose = null)
+        {
+            if (s_currentSystem == null)
+                throw new InvalidOperationException("Cannot register callbacks outside of OnUpdate().");
             
             if (onComplete != null)
                 s_syncCallbacks.Add(onComplete);
             
             if (onDispose != null)
                 s_disposeCallbacks.Add(onDispose);
+        }
+
+        /// <summary>
+        /// 注册一个 Job 句柄，并添加完成后的回调（旧版本兼容）
+        /// </summary>
+        public static void RegisterJob(JobHandle handle, System.Action onComplete = null, System.Action onDispose = null)
+        {
+            UpdateDependency(handle);
+            RegisterCallbacks(onComplete, onDispose);
         }
 
         /// <summary>

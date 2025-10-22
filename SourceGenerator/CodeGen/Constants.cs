@@ -46,13 +46,15 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
             public const string ScheduleParallel = "ScheduleParallel";
             public const string Schedule = "Schedule";
             public const string GetComponent = "GetComponent";
-            public const string Query = "Query";
+            public const string Query = "BuildHybridQuery";
             public const string WithAllComponents = "WithAllComponents";
             public const string WithAnyComponents = "WithAnyComponents";
             public const string WithoutAnyComponents = "WithoutAnyComponents";
             public const string Add = "Add";
             public const string Dispose = "Dispose";
             public const string RegisterJob = "RegisterJob";
+            public const string UpdateDependency = "UpdateDependency";
+            public const string RegisterCallbacks = "RegisterCallbacks";
             public const string LogError = "LogError";
             public const string Log = "Log";
         }

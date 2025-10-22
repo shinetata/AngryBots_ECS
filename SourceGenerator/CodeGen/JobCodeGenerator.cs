@@ -192,26 +192,10 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
         /// </summary>
         private string GenerateExtensionStaticFields()
         {
-            var sb = new StringBuilder();
-            var indent = TemplateEngine.Indent(1);
-
-            if (_componentParameters.Count > 0)
-            {
-                foreach (var parameter in _componentParameters)
-                {
-                    var fieldName = _fieldNames[parameter];
-                    sb.AppendLine($"{indent}{Constants.Modifiers.Private} {Constants.Modifiers.Static} NativeArray<{parameter.TypeFullName}> {fieldName};");
-                }
-            }
-
-            if (_hasEntityParameter)
-            {
-                if (sb.Length > 0)
-                    sb.AppendLine();
-                sb.AppendLine($"{indent}{Constants.Modifiers.Private} {Constants.Modifiers.Static} NativeArray<{Constants.TypeNames.IEntity}> {Constants.FieldNames.EntityArray};");
-            }
-
-            return sb.ToString().TrimEnd('\r', '\n');
+            // 不再使用静态字段！改用方法内局部变量
+            // 原因：多次调用 ScheduleParallel 时静态字段会被覆盖，导致数据竞争
+            // 解决：每次调用创建独立的局部 NativeArray，通过闭包捕获到回调中
+            return string.Empty;
         }
 
         /// <summary>
@@ -375,27 +359,21 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
         }
 
         /// <summary>
-        /// 生成 NativeArray 分配
+        /// 生成 NativeArray 分配（使用局部变量）
         /// </summary>
         private void GenerateNativeArrayAllocation(StringBuilder sb, string indent)
         {
+            // 使用局部变量，每次调用创建独立的 NativeArray
+            // 通过闭包捕获到回调中，避免多次调用时的数据竞争
             foreach (var parameter in _componentParameters)
             {
                 var fieldName = _fieldNames[parameter];
-                sb.AppendLine($"{indent}if ({fieldName}.{Constants.FieldNames.IsCreated})");
-                sb.AppendLine($"{indent}{{");
-                sb.AppendLine($"{indent}    {fieldName}.{Constants.MethodNames.Dispose}();");
-                sb.AppendLine($"{indent}}}");
-                sb.AppendLine($"{indent}{fieldName} = new {Constants.TypeNames.NativeArray}<{parameter.TypeFullName}>({Constants.FieldNames.EntityCount}, {Constants.TypeNames.Allocator}.{Constants.Misc.TempJobAllocator});");
+                sb.AppendLine($"{indent}var {fieldName} = new {Constants.TypeNames.NativeArray}<{parameter.TypeFullName}>({Constants.FieldNames.EntityCount}, {Constants.TypeNames.Allocator}.{Constants.Misc.TempJobAllocator});");
             }
 
             if (_hasEntityParameter)
             {
-                sb.AppendLine($"{indent}if ({Constants.FieldNames.EntityArray}.{Constants.FieldNames.IsCreated})");
-                sb.AppendLine($"{indent}{{");
-                sb.AppendLine($"{indent}    {Constants.FieldNames.EntityArray}.{Constants.MethodNames.Dispose}();");
-                sb.AppendLine($"{indent}}}");
-                sb.AppendLine($"{indent}{Constants.FieldNames.EntityArray} = new {Constants.TypeNames.NativeArray}<{Constants.TypeNames.IEntity}>({Constants.FieldNames.EntityCount}, {Constants.TypeNames.Allocator}.{Constants.Misc.TempJobAllocator});");
+                sb.AppendLine($"{indent}var {Constants.FieldNames.EntityArray} = new {Constants.TypeNames.NativeArray}<{Constants.TypeNames.IEntity}>({Constants.FieldNames.EntityCount}, {Constants.TypeNames.Allocator}.{Constants.Misc.TempJobAllocator});");
             }
 
             if (_componentParameters.Count > 0 || _hasEntityParameter)
@@ -463,11 +441,15 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
             sb.AppendLine($"{indent}var {Constants.FieldNames.Dependency} = {Constants.TypeNames.PGDJobSystemBase}.{Constants.FieldNames.CurrentDependency};");
             sb.AppendLine($"{indent}var {Constants.FieldNames.Handle} = {Constants.FieldNames.Wrapper}.{Constants.MethodNames.Schedule}({Constants.FieldNames.EntityCount}, {Constants.Misc.DefaultBatchSize}, {Constants.FieldNames.Dependency});");
             sb.AppendLine();
+            
+            // Update the dependency chain IMMEDIATELY after scheduling
+            sb.AppendLine($"{indent}// Update dependency chain for next job");
+            sb.AppendLine($"{indent}{Constants.TypeNames.PGDJobSystemBase}.{Constants.MethodNames.UpdateDependency}({Constants.FieldNames.Handle});");
+            sb.AppendLine();
 
             // Register callbacks
             sb.AppendLine($"{indent}// {Constants.Comments.RegisterCallbacks}");
-            sb.AppendLine($"{indent}{Constants.TypeNames.PGDJobSystemBase}.{Constants.MethodNames.RegisterJob}(");
-            sb.AppendLine($"{indent}    {Constants.FieldNames.Handle},");
+            sb.AppendLine($"{indent}{Constants.TypeNames.PGDJobSystemBase}.{Constants.MethodNames.RegisterCallbacks}(");
 
             // onComplete callback
             sb.AppendLine($"{indent}    onComplete: () =>");
