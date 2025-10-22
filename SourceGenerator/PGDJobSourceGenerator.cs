@@ -467,6 +467,15 @@ namespace PGD.Jobs.SourceGenerator
                 builder.AppendLine();
             }
 
+            // Apply WithAll filter
+            GenerateWithAllFilter(builder, jobInfo);
+
+            // Apply WithAny filter
+            GenerateWithAnyFilter(builder, jobInfo);
+
+            // Apply WithNone filter
+            GenerateWithNoneFilter(builder, jobInfo);
+
             builder.AppendLine("var entityCount = query.EntityCount;");
             builder.AppendLine("if (entityCount == 0)");
             builder.OpenBrace();
@@ -631,6 +640,60 @@ namespace PGD.Jobs.SourceGenerator
             return value
                 .Replace("\\", "\\\\")
                 .Replace("\"", "\\\"");
+        }
+
+        /// <summary>
+        /// 生成 WithAll 过滤代码
+        /// </summary>
+        private void GenerateWithAllFilter(CodeBuilder builder, JobInfo jobInfo)
+        {
+            if (jobInfo.WithAllTypes.Count == 0)
+                return;
+
+            builder.AppendLine("var withAllComponents = new global::PGD.IComponents();");
+            foreach (var typeSymbol in jobInfo.WithAllTypes)
+            {
+                var typeFullName = typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                builder.AppendLine($"withAllComponents.Add<{typeFullName}>();");
+            }
+            builder.AppendLine("query = query.WithAllComponents(withAllComponents);");
+            builder.AppendLine();
+        }
+
+        /// <summary>
+        /// 生成 WithAny 过滤代码
+        /// </summary>
+        private void GenerateWithAnyFilter(CodeBuilder builder, JobInfo jobInfo)
+        {
+            if (jobInfo.WithAnyTypes.Count == 0)
+                return;
+
+            builder.AppendLine("var withAnyComponents = new global::PGD.IComponents();");
+            foreach (var typeSymbol in jobInfo.WithAnyTypes)
+            {
+                var typeFullName = typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                builder.AppendLine($"withAnyComponents.Add<{typeFullName}>();");
+            }
+            builder.AppendLine("query = query.WithAnyComponents(withAnyComponents);");
+            builder.AppendLine();
+        }
+
+        /// <summary>
+        /// 生成 WithNone 过滤代码
+        /// </summary>
+        private void GenerateWithNoneFilter(CodeBuilder builder, JobInfo jobInfo)
+        {
+            if (jobInfo.WithNoneTypes.Count == 0)
+                return;
+
+            builder.AppendLine("var withNoneComponents = new global::PGD.IComponents();");
+            foreach (var typeSymbol in jobInfo.WithNoneTypes)
+            {
+                var typeFullName = typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                builder.AppendLine($"withNoneComponents.Add<{typeFullName}>();");
+            }
+            builder.AppendLine("query = query.WithoutAnyComponents(withNoneComponents);");
+            builder.AppendLine();
         }
     }
 
