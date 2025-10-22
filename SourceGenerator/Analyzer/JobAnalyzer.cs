@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -9,19 +9,19 @@ using System.Collections.Generic;
 namespace PGD.Jobs.SourceGenerator.Analyzer
 {
     /// <summary>
-    /// 分析 Job 结构并提取信息
+    /// Analyze job structs and collect metadata for code generation.
     /// </summary>
     internal static class JobAnalyzer
     {
         /// <summary>
-        /// 分析 Job 结构体，提取所有需要的信息
+        /// Analyze a job struct and extract all required information.
         /// </summary>
         public static JobInfo? AnalyzeJob(
             INamedTypeSymbol jobSymbol,
             StructDeclarationSyntax structSyntax,
             Compilation compilation)
         {
-            // 查找 Execute 方法
+            // Find the Execute method
             var executeMethod = FindExecuteMethod(jobSymbol);
             if (executeMethod == null)
                 return null;
@@ -35,20 +35,20 @@ namespace PGD.Jobs.SourceGenerator.Analyzer
                     : null
             };
 
-            // 分析 Execute 方法参数
+            // Analyze Execute parameters
             AnalyzeParameters(executeMethod, jobInfo);
 
-            // 分析 Execute 方法体，找出被修改的成员
-            AnalyzeExecuteMethodBody(executeMethod, structSyntax, jobInfo);
+            // Analyze Execute body to detect modified members
+            AnalyzeExecuteMethodBody(executeMethod, structSyntax, jobInfo, compilation);
 
-            // 分析特性
+            // Analyze job attributes
             AnalyzeAttributes(jobSymbol, jobInfo);
 
             return jobInfo;
         }
 
         /// <summary>
-        /// 查找 Execute 方法
+        /// Find the instance Execute method declared on the job struct.
         /// </summary>
         private static IMethodSymbol? FindExecuteMethod(INamedTypeSymbol jobSymbol)
         {
@@ -58,7 +58,7 @@ namespace PGD.Jobs.SourceGenerator.Analyzer
         }
 
         /// <summary>
-        /// 分析 Execute 方法的参数
+        /// Collect metadata for every parameter of the Execute method.
         /// </summary>
         private static void AnalyzeParameters(IMethodSymbol executeMethod, JobInfo jobInfo)
         {
@@ -68,6 +68,7 @@ namespace PGD.Jobs.SourceGenerator.Analyzer
                 var typeFullName = parameterType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                 var parameterInfo = new ParameterInfo
                 {
+                    Symbol = parameter,
                     Name = parameter.Name,
                     Type = parameterType,
                     TypeName = parameterType.Name,
@@ -108,28 +109,40 @@ namespace PGD.Jobs.SourceGenerator.Analyzer
         }
 
         /// <summary>
-        /// 分析 Execute 方法体，找出 ref 参数中被修改的成员
+        /// Inspect the Execute method body and capture which ref parameters are mutated.
         /// </summary>
         private static void AnalyzeExecuteMethodBody(
-            IMethodSymbol executeMethod, 
-            StructDeclarationSyntax structSyntax, 
-            JobInfo jobInfo)
+            IMethodSymbol executeMethod,
+            StructDeclarationSyntax structSyntax,
+            JobInfo jobInfo,
+            Compilation compilation)
         {
-            // 查找 Execute 方法的语法节点
+            // Locate the Execute method declaration
             var executeSyntax = structSyntax.Members
                 .OfType<MethodDeclarationSyntax>()
                 .FirstOrDefault(m => m.Identifier.Text == "Execute");
 
-            if (executeSyntax?.Body == null)
+            if (executeSyntax == null)
                 return;
 
-            // 对每个 ref 参数，查找其成员被修改的情况
+            var semanticModel = compilation.GetSemanticModel(executeSyntax.SyntaxTree);
+            BlockSyntax? methodBody = executeSyntax.Body;
+
+            if (methodBody == null && executeSyntax.ExpressionBody != null)
+            {
+                var expressionStatement = SyntaxFactory.ExpressionStatement(executeSyntax.ExpressionBody.Expression);
+                methodBody = SyntaxFactory.Block(expressionStatement);
+            }
+
+            if (methodBody == null)
+                return;
+
+            // For each writable component parameter, record modified members
             foreach (var parameter in jobInfo.Parameters.Where(p => p.RequiresWriteBack))
             {
-                var modifiedMembers = FindModifiedMembers(executeSyntax.Body, parameter.Name);
+                var modifiedMembers = FindModifiedMembers(methodBody, parameter, semanticModel);
                 parameter.ModifiedMembers.AddRange(modifiedMembers);
-                
-                // 如果没有检测到具体成员修改，标记为完全修改
+
                 if (parameter.ModifiedMembers.Count == 0)
                 {
                     parameter.IsFullyModified = true;
@@ -138,29 +151,93 @@ namespace PGD.Jobs.SourceGenerator.Analyzer
         }
 
         /// <summary>
-        /// 查找参数的哪些成员被修改了
+        /// Determine which component members are mutated inside Execute.
         /// </summary>
-        private static HashSet<string> FindModifiedMembers(BlockSyntax methodBody, string parameterName)
+        private static HashSet<string> FindModifiedMembers(BlockSyntax methodBody, ParameterInfo parameterInfo, SemanticModel semanticModel)
         {
             var modifiedMembers = new HashSet<string>(StringComparer.Ordinal);
+            var parameterSymbol = parameterInfo.Symbol;
+            var parameterName = parameterInfo.Name;
 
-            // 遍历方法体中的所有赋值表达式
-            var assignments = methodBody.DescendantNodes()
-                .OfType<AssignmentExpressionSyntax>()
-                .Where(a => a.Kind() == SyntaxKind.SimpleAssignmentExpression);
-
-            foreach (var assignment in assignments)
+            bool IsParameterExpression(ExpressionSyntax expression)
             {
-                // 检查赋值的左侧是否是参数的成员访问
-                if (assignment.Left is MemberAccessExpressionSyntax memberAccess)
+                if (parameterSymbol != null)
                 {
-                    // 检查是否是对指定参数的成员访问
-                    if (memberAccess.Expression is IdentifierNameSyntax identifier &&
-                        identifier.Identifier.Text == parameterName)
-                    {
-                        // 记录被修改的成员名
-                        var memberName = memberAccess.Name.Identifier.Text;
+                    var symbol = semanticModel.GetSymbolInfo(expression).Symbol;
+                    if (symbol != null && SymbolEqualityComparer.Default.Equals(symbol, parameterSymbol))
+                        return true;
+                }
+
+                if (expression is IdentifierNameSyntax identifierName)
+                    return string.Equals(identifierName.Identifier.Text, parameterName, StringComparison.Ordinal);
+
+                return false;
+            }
+
+            string? ExtractMemberName(ExpressionSyntax expression)
+            {
+                switch (expression)
+                {
+                    case MemberAccessExpressionSyntax memberAccess:
+                        if (IsParameterExpression(memberAccess.Expression))
+                            return memberAccess.Name.Identifier.Text;
+
+                        return ExtractMemberName(memberAccess.Expression);
+                    case ElementAccessExpressionSyntax elementAccess:
+                        return ExtractMemberName(elementAccess.Expression);
+                    case ParenthesizedExpressionSyntax parenthesized:
+                        return ExtractMemberName(parenthesized.Expression);
+                    default:
+                        return null;
+                }
+            }
+
+            foreach (var assignment in methodBody.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+            {
+                var memberName = ExtractMemberName(assignment.Left);
+                if (!string.IsNullOrEmpty(memberName))
+                    modifiedMembers.Add(memberName);
+            }
+
+            foreach (var unary in methodBody.DescendantNodes().OfType<PrefixUnaryExpressionSyntax>())
+            {
+                if (unary.IsKind(SyntaxKind.PreIncrementExpression) || unary.IsKind(SyntaxKind.PreDecrementExpression))
+                {
+                    var memberName = ExtractMemberName(unary.Operand);
+                    if (!string.IsNullOrEmpty(memberName))
                         modifiedMembers.Add(memberName);
+                }
+            }
+
+            foreach (var unary in methodBody.DescendantNodes().OfType<PostfixUnaryExpressionSyntax>())
+            {
+                if (unary.IsKind(SyntaxKind.PostIncrementExpression) || unary.IsKind(SyntaxKind.PostDecrementExpression))
+                {
+                    var memberName = ExtractMemberName(unary.Operand);
+                    if (!string.IsNullOrEmpty(memberName))
+                        modifiedMembers.Add(memberName);
+                }
+            }
+
+            foreach (var invocation in methodBody.DescendantNodes().OfType<InvocationExpressionSyntax>())
+            {
+                if (invocation.Expression is MemberAccessExpressionSyntax memberAccess)
+                {
+                    var memberName = ExtractMemberName(memberAccess.Expression);
+                    if (!string.IsNullOrEmpty(memberName))
+                        modifiedMembers.Add(memberName);
+                }
+
+                if (invocation.ArgumentList != null)
+                {
+                    foreach (var argument in invocation.ArgumentList.Arguments)
+                    {
+                        if (argument.RefOrOutKeyword.Kind() == SyntaxKind.None)
+                            continue;
+
+                        var memberName = ExtractMemberName(argument.Expression);
+                        if (!string.IsNullOrEmpty(memberName))
+                            modifiedMembers.Add(memberName);
                     }
                 }
             }
@@ -169,7 +246,7 @@ namespace PGD.Jobs.SourceGenerator.Analyzer
         }
 
         /// <summary>
-        /// 分析 Job 上的特性
+        /// Analyze job-level attributes and record component filtering metadata.
         /// </summary>
         private static void AnalyzeAttributes(INamedTypeSymbol jobSymbol, JobInfo jobInfo)
         {
@@ -181,22 +258,18 @@ namespace PGD.Jobs.SourceGenerator.Analyzer
 
                 var attributeName = attributeClass.Name;
 
-                // 检查 BurstCompile
                 if (attributeName == "BurstCompileAttribute")
                 {
                     jobInfo.HasBurstCompile = true;
                 }
-                // 检查 WithAll
                 else if (attributeName == "WithAllAttribute")
                 {
                     ExtractTypesFromAttribute(attribute, jobInfo.WithAllTypes);
                 }
-                // 检查 WithAny
                 else if (attributeName == "WithAnyAttribute")
                 {
                     ExtractTypesFromAttribute(attribute, jobInfo.WithAnyTypes);
                 }
-                // 检查 WithNone
                 else if (attributeName == "WithNoneAttribute")
                 {
                     ExtractTypesFromAttribute(attribute, jobInfo.WithNoneTypes);
@@ -205,11 +278,11 @@ namespace PGD.Jobs.SourceGenerator.Analyzer
         }
 
         /// <summary>
-        /// 从特性中提取类型参数
+        /// Extract type arguments from WithAll/WithAny/WithNone attributes.
         /// </summary>
-        private static void ExtractTypesFromAttribute(AttributeData attribute, System.Collections.Generic.List<ITypeSymbol> targetList)
+        private static void ExtractTypesFromAttribute(AttributeData attribute, List<ITypeSymbol> targetList)
         {
-            // WithAll/WithAny/WithNone 特性的构造函数接受 params Type[]
+            // The constructor packs type arguments into the first params Type[] argument.
             if (attribute.ConstructorArguments.Length > 0)
             {
                 var typesArgument = attribute.ConstructorArguments[0];
@@ -227,4 +300,3 @@ namespace PGD.Jobs.SourceGenerator.Analyzer
         }
     }
 }
-

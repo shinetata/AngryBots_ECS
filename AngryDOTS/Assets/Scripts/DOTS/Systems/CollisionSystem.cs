@@ -109,8 +109,6 @@ public partial struct CollisionJob : IJobParallel
     public float radius;
 
     // Native Array of transforms we will be testing against
-    // Marked with DeallocateOnJobCompletion so it cleans up automatically
-    [DeallocateOnJobCompletion]
     [ReadOnly]
     public NativeArray<PGDLocalTransform> transToTestAgainst;
 

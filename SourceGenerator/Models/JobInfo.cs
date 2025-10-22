@@ -55,6 +55,11 @@ namespace PGD.Jobs.SourceGenerator.Models
     internal class ParameterInfo
     {
         /// <summary>
+        /// Roslyn 符号（用于语义分析）
+        /// </summary>
+        public IParameterSymbol Symbol { get; set; } = null!;
+
+        /// <summary>
         /// 参数名称
         /// </summary>
         public string Name { get; set; } = string.Empty;
