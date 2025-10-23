@@ -30,7 +30,7 @@ public class DirectoryAuthoring : MonoBehaviour
             PGDObjectPool.Instance.WarmupPool(authoring.enemyPrefab, 20);
             
             var bulletEntity = GetHybridEntity(authoring.bulletPrefab);
-            PGDObjectPool.Instance.WarmupPool(authoring.bulletPrefab, 50);
+            PGDObjectPool.Instance.WarmupPool(authoring.bulletPrefab, 10000);
             // We will add a new Directory data component (defined below) to this entity
             AddComponent(entity, new Directory { // Here we use GetEntity to "convert" (bake) the bullet and enemy prefabs and
             // store them as data on this entity. Note that "authoring" is how we access

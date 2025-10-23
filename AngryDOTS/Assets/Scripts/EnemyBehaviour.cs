@@ -15,26 +15,26 @@ public class EnemyBehaviour : MonoBehaviour
 	[Header("Life Settings")]
 	public float enemyHealth = 1f;
 
-	Rigidbody rigidBody;
-
-
-	void Start()
-	{
-		rigidBody = GetComponent<Rigidbody>();
-	}
-
-	void Update()
-	{
-		if (!Settings.IsPlayerDead())
-		{
-			Vector3 heading = Settings.PlayerPosition - transform.position;
-			heading.y = 0f;
-			transform.rotation = Quaternion.LookRotation(heading);
-		}
-
-		Vector3 movement = transform.forward * speed * Time.deltaTime;
-		rigidBody.MovePosition(transform.position + movement);
-	}
+	// Rigidbody rigidBody;
+	//
+	//
+	// void Start()
+	// {
+	// 	rigidBody = GetComponent<Rigidbody>();
+	// }
+	//
+	// void Update()
+	// {
+	// 	if (!Settings.IsPlayerDead())
+	// 	{
+	// 		Vector3 heading = Settings.PlayerPosition - transform.position;
+	// 		heading.y = 0f;
+	// 		transform.rotation = Quaternion.LookRotation(heading);
+	// 	}
+	//
+	// 	Vector3 movement = transform.forward * speed * Time.deltaTime;
+	// 	rigidBody.MovePosition(transform.position + movement);
+	// }
 
 	//Enemy Collision
 	void OnTriggerEnter(Collider theCollider)

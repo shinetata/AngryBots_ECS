@@ -5,6 +5,8 @@
 	* - The initialization in the Start() method
 	* - The entity instantiation in the SpawnBulletECS() and SpawnBulletSpreadECS() methods
  */
+
+using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Transforms;
@@ -125,7 +127,7 @@ public class PlayerShooting : MonoBehaviour
         // NativeArrays are thread-safe data containers. In DOTS, they are a great way to work
         // with a lot of entities at once. They must be cleaned up though. This code creates
         // a temporary NativeArray with a size equal to the number of bullets we want to spawn
-        NativeArray<IEntity> bullets = new NativeArray<IEntity>(totalAmount, Allocator.TempJob);
+        List<IEntity> bullets = new List<IEntity>(totalAmount);
         // By passing a NativeArray into the Instantiate() method of the EntityManager, many entities
         // are created at once and put into this NativeArray
         manager.InstantiateEntity(bulletEntityPrefab, bullets);
@@ -150,6 +152,6 @@ public class PlayerShooting : MonoBehaviour
         }
 
         // Be sure to Dispose of the NativeArray or else you'll have a memory leak
-        bullets.Dispose();
+        bullets.Clear();
     }
 }
