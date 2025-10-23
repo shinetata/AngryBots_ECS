@@ -212,7 +212,7 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
         public static class Misc
         {
             public const int DefaultBatchSize = 64;
-            public const string TempJobAllocator = "TempJob";
+            public const string TempJobAllocator = "Persistent";
         }
     }
 }
