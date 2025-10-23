@@ -47,7 +47,7 @@ namespace PGD.Jobs.SourceGenerator.CodeGen
             public const string ScheduleParallel = "ScheduleParallel";
             public const string Schedule = "Schedule";
             public const string GetComponent = "GetComponent";
-            public const string Query = "BuildHybridQuery";
+            public const string Query = "HybridQuery";
             public const string WithAllComponents = "WithAllComponents";
             public const string WithAnyComponents = "WithAnyComponents";
             public const string WithoutAnyComponents = "WithoutAnyComponents";
