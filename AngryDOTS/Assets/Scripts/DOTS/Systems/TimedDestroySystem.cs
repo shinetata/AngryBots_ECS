@@ -20,7 +20,7 @@ public partial class TimedDestroySystem : PGDSystem
     {
         {
             CommandQueue commandBuffer = PGDGameContext.GetCommandQueue();
-            PGDGameContext.BuildHybridQuery<TimeToLive>().ForEachEntity((ref TimeToLive timer, IEntity entity) =>
+            PGDGameContext.HybridQuery<TimeToLive>().ForEachEntity((ref TimeToLive timer, IEntity entity) =>
             {
                 // Access the value of timer (local name for the TimeToLive component). Note how this
                 // syntax uses "ValueRW" instead of just "Value". This is needed inside a foreach to 

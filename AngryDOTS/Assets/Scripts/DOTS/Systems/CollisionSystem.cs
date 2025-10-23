@@ -32,11 +32,11 @@ partial class CollisionSystem : PGDJobSystemBase
     {
         // If there are no enemies, this system doesn't need to run
         // Build and save the queries we will be using
-        enemyQuery = PGDGameContext.BuildHybridQuery()
+        enemyQuery = PGDGameContext.HybridQuery()
             .WithAllComponents(IComponents.Get<Health, EnemyTag, PGDLocalTransform>());
-        bulletQuery = PGDGameContext.BuildHybridQuery()
+        bulletQuery = PGDGameContext.HybridQuery()
             .WithAllComponents(IComponents.Get<TimeToLive, PGDLocalTransform>());
-        playerQuery = PGDGameContext.BuildHybridQuery()
+        playerQuery = PGDGameContext.HybridQuery()
             .WithAllComponents(IComponents.Get<Health, PlayerTag, PGDLocalTransform>());
 
         // Grab the radii values from the Settings script

@@ -23,7 +23,7 @@ partial class RemoveDeadSystem : PGDSystem
     {
         {
             CommandQueue commandBuffer = PGDGameContext.GetCommandQueue();
-            PGDGameContext.BuildHybridQuery<Health, EnemyTag>().ForEachEntity((ref Health health, ref EnemyTag _, 
+            PGDGameContext.HybridQuery<Health, EnemyTag>().ForEachEntity((ref Health health, ref EnemyTag _, 
                 IEntity entity) =>
             {
                 // Access the value of health (local name for the Health component). Note how this

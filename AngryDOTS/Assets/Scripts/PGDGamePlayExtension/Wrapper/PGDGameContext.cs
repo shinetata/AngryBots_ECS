@@ -113,25 +113,25 @@ public static class PGDGameContext
 
     #region Query Extension
     // 创建不含模板Entity的Query，避免模板Entity在System中受影响
-    public static IQuery BuildHybridQuery()
+    public static IQuery HybridQuery()
     {
         return GetWorld().Query().WithoutAnyTags(ITags.Get<PrefabTag>());
     }
 
-    public static IQuery<T1> BuildHybridQuery<T1>()  
+    public static IQuery<T1> HybridQuery<T1>()  
         where T1 : struct, IComponent
     {
         return GetWorld().Query<T1>().WithoutAnyTags(ITags.Get<PrefabTag>());
     }
 
-    public static IQuery<T1, T2> BuildHybridQuery<T1, T2>()  
+    public static IQuery<T1, T2> HybridQuery<T1, T2>()  
         where T1 : struct, IComponent 
         where T2 : struct, IComponent
     {
         return GetWorld().Query<T1, T2>().WithoutAnyTags(ITags.Get<PrefabTag>());
     }
 
-    public static IQuery<T1, T2, T3> BuildHybridQuery<T1, T2, T3>()  
+    public static IQuery<T1, T2, T3> HybridQuery<T1, T2, T3>()  
         where T1 : struct, IComponent 
         where T2 : struct, IComponent 
         where T3 : struct, IComponent
@@ -140,7 +140,7 @@ public static class PGDGameContext
     }
     
     
-    public static IQuery<T1, T2, T3, T4> BuildHybridQuery<T1, T2, T3, T4>()  
+    public static IQuery<T1, T2, T3, T4> HybridQuery<T1, T2, T3, T4>()  
         where T1 : struct, IComponent 
         where T2 : struct, IComponent 
         where T3 : struct, IComponent 
@@ -149,7 +149,7 @@ public static class PGDGameContext
         return GetWorld().Query<T1, T2, T3, T4>().WithoutAnyTags(ITags.Get<PrefabTag>());
     }
     
-    public static IQuery<T1, T2, T3, T4, T5> BuildHybridQuery<T1, T2, T3, T4, T5>()  
+    public static IQuery<T1, T2, T3, T4, T5> HybridQuery<T1, T2, T3, T4, T5>()  
         where T1 : struct, IComponent
         where T2 : struct, IComponent
         where T3 : struct, IComponent
@@ -158,7 +158,7 @@ public static class PGDGameContext
     {
         return GetWorld().Query<T1, T2, T3, T4, T5>().WithoutAnyTags(ITags.Get<PrefabTag>());
     }
-    public static IQuery<T1, T2, T3, T4, T5, T6> BuildHybridQuery<T1, T2, T3, T4, T5, T6>()  
+    public static IQuery<T1, T2, T3, T4, T5, T6> HybridQuery<T1, T2, T3, T4, T5, T6>()  
         where T1 : struct, IComponent
         where T2 : struct, IComponent
         where T3 : struct, IComponent
@@ -169,7 +169,7 @@ public static class PGDGameContext
         return GetWorld().Query<T1, T2, T3, T4, T5, T6>().WithoutAnyTags(ITags.Get<PrefabTag>());
     }
     
-    public static IQuery<T1, T2, T3, T4, T5, T6, T7> BuildHybridQuery<T1, T2, T3, T4, T5, T6, T7>()  
+    public static IQuery<T1, T2, T3, T4, T5, T6, T7> HybridQuery<T1, T2, T3, T4, T5, T6, T7>()  
         where T1 : struct, IComponent 
         where T2 : struct, IComponent 
         where T3 : struct, IComponent 
@@ -181,25 +181,25 @@ public static class PGDGameContext
         return GetWorld().Query<T1, T2, T3, T4, T5, T6, T7>().WithoutAnyTags(ITags.Get<PrefabTag>());
     }
 
-    public static IQuery BuildHybridQuery(this IECSWorld world)
+    public static IQuery HybridQuery(this IECSWorld world)
     {
         return world.Query().WithoutAnyTags(ITags.Get<PrefabTag>());
     }
     
-    public static IQuery<T1> BuildHybridQuery<T1>(this IECSWorld world)  
+    public static IQuery<T1> HybridQuery<T1>(this IECSWorld world)  
         where T1 : struct, IComponent
     {
         return world.Query<T1>().WithoutAnyTags(ITags.Get<PrefabTag>());
     }
 
-    public static IQuery<T1, T2> BuildHybridQuery<T1, T2>(this IECSWorld world)  
+    public static IQuery<T1, T2> HybridQuery<T1, T2>(this IECSWorld world)  
         where T1 : struct, IComponent 
         where T2 : struct, IComponent
     {
         return world.Query<T1, T2>().WithoutAnyTags(ITags.Get<PrefabTag>());
     }
     
-    public static IQuery<T1, T2, T3> BuildHybridQuery<T1, T2, T3>(this IECSWorld world)  
+    public static IQuery<T1, T2, T3> HybridQuery<T1, T2, T3>(this IECSWorld world)  
         where T1 : struct, IComponent 
         where T2 : struct, IComponent 
         where T3 : struct, IComponent
@@ -208,7 +208,7 @@ public static class PGDGameContext
     }
     
     
-    public static IQuery<T1, T2, T3, T4> BuildHybridQuery<T1, T2, T3, T4>(this IECSWorld world)  
+    public static IQuery<T1, T2, T3, T4> HybridQuery<T1, T2, T3, T4>(this IECSWorld world)  
         where T1 : struct, IComponent 
         where T2 : struct, IComponent 
         where T3 : struct, IComponent 
@@ -217,7 +217,7 @@ public static class PGDGameContext
         return world.Query<T1, T2, T3, T4>().WithoutAnyTags(ITags.Get<PrefabTag>());
     }
 
-    public static IQuery<T1, T2, T3, T4, T5> BuildHybridQuery<T1, T2, T3, T4, T5>(this IECSWorld world)  
+    public static IQuery<T1, T2, T3, T4, T5> HybridQuery<T1, T2, T3, T4, T5>(this IECSWorld world)  
         where T1 : struct, IComponent
         where T2 : struct, IComponent
         where T3 : struct, IComponent
@@ -227,7 +227,7 @@ public static class PGDGameContext
         return world.Query<T1, T2, T3, T4, T5>().WithoutAnyTags(ITags.Get<PrefabTag>());
     }
 
-    public static IQuery<T1, T2, T3, T4, T5, T6> BuildHybridQuery<T1, T2, T3, T4, T5, T6>(this IECSWorld world)  
+    public static IQuery<T1, T2, T3, T4, T5, T6> HybridQuery<T1, T2, T3, T4, T5, T6>(this IECSWorld world)  
         where T1 : struct, IComponent
         where T2 : struct, IComponent
         where T3 : struct, IComponent
