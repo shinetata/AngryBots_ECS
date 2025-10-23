@@ -11,7 +11,6 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using PGD;
 using PGD.Jobs;
-using WithAll = PGD.Jobs.WithAllAttribute;
 
 [BurstCompile]                              // Enable Burst compilation
 [UpdateSystemBefore(typeof(MoveForwardSystem))]   // Add a timing prerequisite to this system
@@ -46,7 +45,7 @@ partial class TurnTowardsPlayerSystem : PGDJobSystemBase
 }
 
 [BurstCompile]
-[WithAll(typeof(EnemyTag))]
+[WithAllComponents(typeof(EnemyTag))]
 // More information on IJobEntity can be found in the MoveForwardSystem.cs
 // The query for this job is defined by the Execute() method. Since we only want this to
 // process enemy entities, we specify the need for the EnemyTag as well (above). If we 

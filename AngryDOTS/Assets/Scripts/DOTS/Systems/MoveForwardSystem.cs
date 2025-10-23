@@ -25,7 +25,7 @@ partial class MoveForwardSystem : PGDJobSystemBase
 }
 
 [BurstCompile]
-[WithAll(typeof(MoveForward))]
+[WithAllComponents(typeof(MoveForward))]
 public partial struct MoveForwardJob : IJobParallel
 {
     public float dt;
