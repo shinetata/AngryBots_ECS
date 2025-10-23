@@ -68,7 +68,7 @@ partial class CollisionSystem : PGDJobSystemBase
             transToTestAgainst = bulletTransforms
         };
         // Schedule this as a multi-threaded job on enemies
-        jobEvB.ScheduleParallel(enemyQuery);
+        Dependency = jobEvB.ScheduleParallel(enemyQuery, Dependency);
         
         // NOTE: bulletTransforms will be automatically disposed by Unity Job System
         // due to [DeallocateOnJobCompletion] attribute on the transToTestAgainst field
@@ -93,7 +93,7 @@ partial class CollisionSystem : PGDJobSystemBase
         };
         // Schedule this as a multi-threaded job on players
         // The dependency is managed automatically by the framework
-        jobPvE.ScheduleParallel(playerQuery);
+        Dependency = jobPvE.ScheduleParallel(playerQuery, Dependency);
         
         // NOTE: enemyTransforms will be automatically disposed by Unity Job System
         // due to [DeallocateOnJobCompletion] attribute on the transToTestAgainst field
