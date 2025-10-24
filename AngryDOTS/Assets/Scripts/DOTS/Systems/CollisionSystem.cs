@@ -8,6 +8,7 @@
  * DOTS physics or another performant solution
  */
 
+using System.Linq;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Mathematics;
@@ -47,41 +48,17 @@ partial class CollisionSystem : PGDJobSystemBase
     [BurstCompile]
     protected override void OnUpdate()
     {
-        // Extract bullet transforms to NativeArray (needed for collision testing)
-        int bulletCount = bulletQuery.EntityCount;
-        if (bulletCount == 0) return; // No bullets, no collision possible
-        
-        var bulletTransforms = new NativeArray<PGDLocalTransform>(bulletCount, Allocator.TempJob);
-        int index = 0;
-        foreach (var entity in bulletQuery.Entities)
-        {
-            bulletTransforms[index] = entity.GetComponent<PGDLocalTransform>();
-            index++;
-        }
-
         // Create a CollisionJob for Enemies vs Bullets
         var jobEvB = new CollisionJob
         {
             // Pass in the radius, which is squared for this algorithm
             radius = enemyCollisionRadius * enemyCollisionRadius,
             // Pass in a NativeArray of all of the Bullet transforms
-            transToTestAgainst = bulletTransforms
+            transToTestAgainst = new NativeArray<PGDLocalTransform>(
+                bulletQuery.Entities.Select(e => e.GetComponent<PGDLocalTransform>()).ToArray(), Allocator.TempJob)
         };
         // Schedule this as a multi-threaded job on enemies
         Dependency = jobEvB.ScheduleParallel(enemyQuery, Dependency);
-        
-        // NOTE: bulletTransforms will be automatically disposed by Unity Job System
-        // due to [DeallocateOnJobCompletion] attribute on the transToTestAgainst field
-
-        // Extract enemy transforms to NativeArray (needed for player collision testing)
-        int enemyCount = enemyQuery.EntityCount;
-        var enemyTransforms = new NativeArray<PGDLocalTransform>(enemyCount, Allocator.TempJob);
-        index = 0;
-        foreach (var entity in enemyQuery.Entities)
-        {
-            enemyTransforms[index] = entity.GetComponent<PGDLocalTransform>();
-            index++;
-        }
 
         // Create a CollisionJob for Player vs Enemies
         var jobPvE = new CollisionJob
@@ -89,7 +66,8 @@ partial class CollisionSystem : PGDJobSystemBase
             // Pass in the radius, which is squared for this algorithm
             radius = playerCollisionRadius * playerCollisionRadius,
             // Pass in a NativeArray of all of the Enemy transforms
-            transToTestAgainst = enemyTransforms
+            transToTestAgainst = new NativeArray<PGDLocalTransform>(
+                enemyQuery.Entities.Select(e => e.GetComponent<PGDLocalTransform>()).ToArray(), Allocator.TempJob)
         };
         // Schedule this as a multi-threaded job on players
         // The dependency is managed automatically by the framework
@@ -109,6 +87,7 @@ public partial struct CollisionJob : IJobParallel
     public float radius;
 
     // Native Array of transforms we will be testing against
+    [DeallocateOnJobCompletion]
     [ReadOnly]
     public NativeArray<PGDLocalTransform> transToTestAgainst;
 
