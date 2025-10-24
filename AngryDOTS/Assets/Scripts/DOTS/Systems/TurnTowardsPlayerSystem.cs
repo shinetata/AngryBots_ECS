@@ -34,7 +34,7 @@ partial class TurnTowardsPlayerSystem : PGDSystem<PGDLocalTransform, EnemyTag>, 
     public void SyncDataBack()
     {
         int index = 0;
-        GetQuery().ForEachEntity((
+        GetQuery().WithoutAnyTags(ITags.Get<PrefabTag>()).ForEachEntity((
             ref PGDLocalTransform transform,
             ref EnemyTag _,
             IEntity entity

@@ -15,12 +15,12 @@ public class EnemyBehaviour : MonoBehaviour
 	[Header("Life Settings")]
 	public float enemyHealth = 1f;
 
-	Rigidbody rigidBody;
+	// Rigidbody rigidBody;
 
 
 	void Start()
 	{
-		rigidBody = GetComponent<Rigidbody>();
+		// rigidBody = GetComponent<Rigidbody>();
 	}
 
 	void Update()
@@ -33,7 +33,7 @@ public class EnemyBehaviour : MonoBehaviour
 		}
 
 		Vector3 movement = transform.forward * speed * Time.deltaTime;
-		rigidBody.MovePosition(transform.position + movement);
+		// rigidBody.MovePosition(transform.position + movement);
 	}
 
 	//Enemy Collision

@@ -35,7 +35,7 @@ partial class MoveForwardSystem : PGDSystem<PGDLocalTransform, MoveSpeed>, IJobi
     public void SyncDataBack()
     {
         int index = 0;
-        GetQuery().ForEachEntity((
+        GetQuery().WithoutAnyTags(ITags.Get<PrefabTag>()).ForEachEntity((
             ref PGDLocalTransform transform,
             ref MoveSpeed speed,
             IEntity entity

@@ -45,9 +45,9 @@ partial class CollisionSystem : PGDSystem, IJobifiedSystem
     {
         // If there are no enemies, this system doesn't need to run
         // Build and save the queries we will be using
-        enemyQuery = PGDGameContext.BuildHybridQuery().WithAllComponents(IComponents.Get<Health, EnemyTag, PGDLocalTransform>());
-        bulletQuery = PGDGameContext.BuildHybridQuery().WithAllComponents(IComponents.Get<TimeToLive, PGDLocalTransform>());
-        playerQuery = PGDGameContext.BuildHybridQuery().WithAllComponents(IComponents.Get<Health, PlayerTag, PGDLocalTransform>());
+        enemyQuery = PGDGameContext.HybridQuery().WithAllComponents(IComponents.Get<Health, EnemyTag, PGDLocalTransform>());
+        bulletQuery = PGDGameContext.HybridQuery().WithAllComponents(IComponents.Get<TimeToLive, PGDLocalTransform>());
+        playerQuery = PGDGameContext.HybridQuery().WithAllComponents(IComponents.Get<Health, PlayerTag, PGDLocalTransform>());
         // Grab the radii values from the Settings script
         enemyCollisionRadius = Settings.EnemyCollisionRadius;
         playerCollisionRadius = Settings.PlayerCollisionRadius;
